@@ -23,15 +23,14 @@ export function CartDrawer() {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div
-        className="absolute inset-0 bg-ink/40 animate-rise"
-        onClick={closeCart}
-      />
+      <div className="absolute inset-0 bg-ink/40 animate-rise" onClick={closeCart} />
       <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-background shadow-2xl animate-rise">
         <header className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
             <p className="eyebrow">Your bag</p>
-            <h3 className="font-display text-xl">{cart.length} {cart.length === 1 ? "item" : "items"}</h3>
+            <h3 className="font-display text-xl">
+              {cart.length} {cart.length === 1 ? "item" : "items"}
+            </h3>
           </div>
           <button onClick={closeCart} aria-label="Close" className="p-2">
             <X className="h-5 w-5" />

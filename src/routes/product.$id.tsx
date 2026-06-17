@@ -1,9 +1,21 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
-import { Heart, ShoppingBag, Truck, Sparkles, Ruler, ChevronDown, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Heart,
+  ShoppingBag,
+  Truck,
+  Sparkles,
+  Ruler,
+  ChevronDown,
+  ArrowRight,
+  RotateCw,
+  Image as ImageIcon,
+} from "lucide-react";
 import { PRODUCTS, formatINR } from "@/lib/products";
 import { useShop } from "@/lib/store";
 import { ProductCard } from "@/components/product-card";
+import { ProductZoom } from "@/components/product-zoom";
+import { Product360Viewer } from "@/components/product-360-viewer";
 
 export const Route = createFileRoute("/product/$id")({
   loader: ({ params }) => {
@@ -25,7 +37,11 @@ export const Route = createFileRoute("/product/$id")({
     <div className="container-luxe py-24 text-center">
       <p className="eyebrow">Not found</p>
       <h1 className="mt-3 font-display text-4xl">This piece has retired</h1>
-      <Link to="/shop" search={{ category: "all" }} className="mt-6 inline-block border-b border-foreground pb-1 eyebrow">
+      <Link
+        to="/shop"
+        search={{ category: "all" }}
+        className="mt-6 inline-block border-b border-foreground pb-1 eyebrow"
+      >
         Browse the atelier
       </Link>
     </div>
@@ -42,17 +58,86 @@ function ProductPage() {
   const [size, setSize] = useState("M");
   const [active, setActive] = useState(0);
   const [openSection, setOpenSection] = useState<string | null>("details");
+  const [view360, setView360] = useState(false);
   const wished = wishlist.includes(product.id);
+
+  // Sync to recently viewed
+  useEffect(() => {
+    if (product) {
+      const history = JSON.parse(localStorage.getItem("maaya-recent-viewed") || "[]");
+      const filtered = history.filter((p: any) => p.id !== product.id);
+      localStorage.setItem(
+        "maaya-recent-viewed",
+        JSON.stringify([product, ...filtered].slice(0, 6)),
+      );
+    }
+  }, [product]);
 
   const related = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
 
   return (
     <div>
+      {/* Structured SEO data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            name: product.name,
+            image: product.images,
+            description: product.description,
+            sku: product.id.toUpperCase(),
+            offers: {
+              "@type": "Offer",
+              url: `http://localhost:3000/product/${product.id}`,
+              priceCurrency: "INR",
+              price: product.price,
+              availability: "https://schema.org/InStock",
+              itemCondition: "https://schema.org/NewCondition",
+            },
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: "http://localhost:3000",
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Shop",
+                item: "http://localhost:3000/shop",
+              },
+              {
+                "@type": "ListItem",
+                position: 3,
+                name: product.name,
+                item: `http://localhost:3000/product/${product.id}`,
+              },
+            ],
+          }),
+        }}
+      />
+
       <div className="container-luxe pt-6">
         <nav className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          <Link to="/" className="hover:text-foreground">Home</Link>
+          <Link to="/" className="hover:text-foreground">
+            Home
+          </Link>
           <span className="mx-2">/</span>
-          <Link to="/shop" search={{ category: "all" }} className="hover:text-foreground">Shop</Link>
+          <Link to="/shop" search={{ category: "all" }} className="hover:text-foreground">
+            Shop
+          </Link>
           <span className="mx-2">/</span>
           <span className="text-foreground">{product.name}</span>
         </nav>
@@ -65,17 +150,37 @@ function ProductPage() {
             {product.images.map((img: string, i: number) => (
               <button
                 key={i}
-                onClick={() => setActive(i)}
+                onClick={() => {
+                  setActive(i);
+                  setView360(false);
+                }}
                 className={`aspect-[3/4] w-20 overflow-hidden border transition-colors ${
-                  active === i ? "border-foreground" : "border-transparent"
+                  active === i && !view360 ? "border-foreground" : "border-transparent"
                 }`}
               >
                 <img src={img} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
+
+            {/* 360 Toggle in gallery */}
+            <button
+              onClick={() => setView360(true)}
+              className={`aspect-[3/4] w-20 flex flex-col items-center justify-center border text-[9px] uppercase tracking-wider transition-colors ${
+                view360
+                  ? "border-gold bg-gold/10 text-gold"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <RotateCw className="h-4 w-4 mb-1" />
+              360°
+            </button>
           </div>
-          <div className="order-1 aspect-[3/4] overflow-hidden bg-champagne/40 md:order-2">
-            <img src={product.images[active]} alt={product.name} className="h-full w-full object-cover" />
+          <div className="order-1 aspect-[3/4] md:order-2">
+            {view360 ? (
+              <Product360Viewer images={product.images} />
+            ) : (
+              <ProductZoom src={product.images[active]} alt={product.name} />
+            )}
           </div>
         </div>
 
@@ -86,12 +191,16 @@ function ProductPage() {
           <div className="mt-3 flex items-baseline gap-3">
             <span className="text-xl">{formatINR(product.price)}</span>
             {product.compareAt && (
-              <span className="text-sm text-muted-foreground line-through">{formatINR(product.compareAt)}</span>
+              <span className="text-sm text-muted-foreground line-through">
+                {formatINR(product.compareAt)}
+              </span>
             )}
             <span className="text-xs text-muted-foreground">incl. taxes</span>
           </div>
 
-          <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{product.description}</p>
+          <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+            {product.description}
+          </p>
 
           <div className="mt-8">
             <div className="flex items-center justify-between">
@@ -143,33 +252,55 @@ function ProductPage() {
           </a>
 
           <div className="mt-8 grid gap-3 border-y border-border py-6 text-xs text-muted-foreground sm:grid-cols-2">
-            <p className="inline-flex items-center gap-2"><Truck className="h-4 w-4 text-gold" /> Free shipping in India</p>
-            <p className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-gold" /> Hand-finished, made-to-order</p>
+            <p className="inline-flex items-center gap-2">
+              <Truck className="h-4 w-4 text-gold" /> Free shipping in India
+            </p>
+            <p className="inline-flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-gold" /> Hand-finished, made-to-order
+            </p>
           </div>
 
           {/* Accordion */}
           <div className="mt-8 divide-y divide-border border-y border-border">
             {[
-              { id: "details", title: "Details", content: (
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {product.details.map((d: string) => <li key={d}>— {d}</li>)}
-                </ul>
-              )},
-              { id: "shipping", title: "Shipping & Returns", content: (
-                <p className="text-sm text-muted-foreground">
-                  Made-to-order pieces ship in 3–6 weeks. Complimentary shipping across India; international from ₹2,500. Exchanges accepted within 7 days of delivery on ready-to-wear pieces.
-                </p>
-              )},
-              { id: "care", title: "Care", content: (
-                <p className="text-sm text-muted-foreground">
-                  Dry clean only. Store flat, wrapped in muslin, away from direct sunlight.
-                </p>
-              )},
+              {
+                id: "details",
+                title: "Details",
+                content: (
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {product.details.map((d: string) => (
+                      <li key={d}>— {d}</li>
+                    ))}
+                  </ul>
+                ),
+              },
+              {
+                id: "shipping",
+                title: "Shipping & Returns",
+                content: (
+                  <p className="text-sm text-muted-foreground">
+                    Made-to-order pieces ship in 3–6 weeks. Complimentary shipping across India;
+                    international from ₹2,500. Exchanges accepted within 7 days of delivery on
+                    ready-to-wear pieces.
+                  </p>
+                ),
+              },
+              {
+                id: "care",
+                title: "Care",
+                content: (
+                  <p className="text-sm text-muted-foreground">
+                    Dry clean only. Store flat, wrapped in muslin, away from direct sunlight.
+                  </p>
+                ),
+              },
             ].map((s) => (
               <details
                 key={s.id}
                 open={openSection === s.id}
-                onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && setOpenSection(s.id)}
+                onToggle={(e) =>
+                  (e.currentTarget as HTMLDetailsElement).open && setOpenSection(s.id)
+                }
                 className="group py-5"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between">
@@ -188,7 +319,9 @@ function ProductPage() {
         <div className="flex items-center gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{product.name}</p>
-            <p className="text-xs text-muted-foreground">{formatINR(product.price)} · Size {size}</p>
+            <p className="text-xs text-muted-foreground">
+              {formatINR(product.price)} · Size {size}
+            </p>
           </div>
           <button
             onClick={() => addToCart(product, size)}
@@ -203,12 +336,18 @@ function ProductPage() {
       <section className="container-luxe pb-24 pt-10">
         <div className="flex items-end justify-between border-b border-border pb-6">
           <h2 className="font-display text-3xl">You may also love</h2>
-          <Link to="/shop" search={{ category: "all" }} className="eyebrow inline-flex items-center gap-2 hover:text-gold">
+          <Link
+            to="/shop"
+            search={{ category: "all" }}
+            className="eyebrow inline-flex items-center gap-2 hover:text-gold"
+          >
             All <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
         <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4 md:gap-x-8">
-          {related.map((p) => <ProductCard key={p.id} product={p} />)}
+          {related.map((p) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
         </div>
       </section>
     </div>

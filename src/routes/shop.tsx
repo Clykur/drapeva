@@ -14,7 +14,11 @@ export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
       { title: "Shop — Maaya Couture" },
-      { name: "description", content: "Shop handwoven sarees, lehengas, anarkalis and bridal couture from the Maaya atelier." },
+      {
+        name: "description",
+        content:
+          "Shop handwoven sarees, lehengas, anarkalis and bridal couture from the Maaya atelier.",
+      },
     ],
   }),
   component: Shop,
@@ -49,18 +53,25 @@ function Shop() {
     if (occasions.length) list = list.filter((p) => occasions.includes(p.occasion));
     if (price !== null) {
       const band = PRICE_BANDS[price];
-      list = list.filter((p) => (!band.min || p.price >= band.min) && (!band.max || p.price < band.max));
+      list = list.filter(
+        (p) => (!band.min || p.price >= band.min) && (!band.max || p.price < band.max),
+      );
     }
     if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
     if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
-    if (sort === "new") list.sort((a, b) => (b.badge === "New" ? 1 : 0) - (a.badge === "New" ? 1 : 0));
+    if (sort === "new")
+      list.sort((a, b) => (b.badge === "New" ? 1 : 0) - (a.badge === "New" ? 1 : 0));
     return list;
   }, [category, fabrics, occasions, price, sort]);
 
   const toggle = (arr: string[], v: string, set: (a: string[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
-  const clearAll = () => { setFabrics([]); setOccasions([]); setPrice(null); };
+  const clearAll = () => {
+    setFabrics([]);
+    setOccasions([]);
+    setPrice(null);
+  };
 
   const heading = category === "all" ? "All Couture" : category;
 
@@ -71,7 +82,8 @@ function Shop() {
           <p className="eyebrow">The Edit</p>
           <h1 className="mt-3 font-display text-4xl md:text-6xl">{heading}</h1>
           <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">
-            Each piece is hand-finished in our Mumbai atelier and shipped, with care, anywhere in the world.
+            Each piece is hand-finished in our Mumbai atelier and shipped, with care, anywhere in
+            the world.
           </p>
           <nav className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs uppercase tracking-[0.2em]">
             {(["all", "Sarees", "Lehengas", "Suits", "Bridal"] as const).map((c) => (
@@ -107,17 +119,32 @@ function Shop() {
 
             <FilterGroup title="Fabric">
               {FABRICS.map((f) => (
-                <Check key={f} label={f} checked={fabrics.includes(f)} onChange={() => toggle(fabrics, f, setFabrics)} />
+                <Check
+                  key={f}
+                  label={f}
+                  checked={fabrics.includes(f)}
+                  onChange={() => toggle(fabrics, f, setFabrics)}
+                />
               ))}
             </FilterGroup>
             <FilterGroup title="Occasion">
               {OCCASIONS.map((o) => (
-                <Check key={o} label={o} checked={occasions.includes(o)} onChange={() => toggle(occasions, o, setOccasions)} />
+                <Check
+                  key={o}
+                  label={o}
+                  checked={occasions.includes(o)}
+                  onChange={() => toggle(occasions, o, setOccasions)}
+                />
               ))}
             </FilterGroup>
             <FilterGroup title="Price">
               {PRICE_BANDS.map((b, i) => (
-                <Check key={b.label} label={b.label} checked={price === i} onChange={() => setPrice(price === i ? null : i)} />
+                <Check
+                  key={b.label}
+                  label={b.label}
+                  checked={price === i}
+                  onChange={() => setPrice(price === i ? null : i)}
+                />
               ))}
             </FilterGroup>
             <div className="mt-8 flex gap-3 lg:flex-col">
@@ -189,7 +216,15 @@ function FilterGroup({ title, children }: { title: string; children: React.React
   );
 }
 
-function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
+function Check({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
   return (
     <label className="flex cursor-pointer items-center gap-3 text-sm">
       <span
@@ -200,7 +235,9 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
       >
         {checked && <span className="h-1.5 w-1.5 bg-background" />}
       </span>
-      <span className={`select-none ${checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+      <span
+        className={`select-none ${checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
         {label}
       </span>
     </label>

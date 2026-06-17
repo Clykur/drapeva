@@ -26,10 +26,7 @@ function NotFoundComponent() {
         <p className="mt-3 text-sm text-muted-foreground">
           The page you're looking for doesn't exist.
         </p>
-        <Link
-          to="/"
-          className="mt-8 inline-block border-b border-foreground pb-1 eyebrow"
-        >
+        <Link to="/" className="mt-8 inline-block border-b border-foreground pb-1 eyebrow">
           Return home
         </Link>
       </div>
@@ -48,17 +45,21 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="font-display text-2xl">This page didn't load</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Something went wrong on our end.</p>
         <div className="mt-6 flex justify-center gap-3">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="bg-foreground px-5 py-2.5 text-xs uppercase tracking-[0.2em] text-background"
           >
             Try again
           </button>
-          <a href="/" className="border border-border px-5 py-2.5 text-xs uppercase tracking-[0.2em]">
+          <a
+            href="/"
+            className="border border-border px-5 py-2.5 text-xs uppercase tracking-[0.2em]"
+          >
             Home
           </a>
         </div>
@@ -73,10 +74,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Maaya Couture — Heirloom Indian Couture, Handwoven & Hand-finished" },
-      { name: "description", content: "Discover Maaya — an atelier of heirloom sarees, lehengas and bridal couture. Handwoven by Indian master artisans, designed for the modern bride." },
+      {
+        name: "description",
+        content:
+          "Discover Maaya — an atelier of heirloom sarees, lehengas and bridal couture. Handwoven by Indian master artisans, designed for the modern bride.",
+      },
       { name: "author", content: "Maaya Couture" },
       { property: "og:title", content: "Maaya Couture — Heirloom Indian Couture" },
-      { property: "og:description", content: "Handwoven sarees, lehengas and bridal couture, made-to-order in India." },
+      {
+        property: "og:description",
+        content: "Handwoven sarees, lehengas and bridal couture, made-to-order in India.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#1a1612" },

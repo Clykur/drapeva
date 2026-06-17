@@ -9,23 +9,49 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Maaya Couture — Heirloom Indian Sarees, Lehengas & Bridal" },
-      { name: "description", content: "An atelier of heirloom Indian couture — handwoven sarees, lehengas and bridal pieces, made-to-order for the modern bride." },
+      {
+        name: "description",
+        content:
+          "An atelier of heirloom Indian couture — handwoven sarees, lehengas and bridal pieces, made-to-order for the modern bride.",
+      },
       { property: "og:title", content: "Maaya Couture — Heirloom Indian Couture" },
-      { property: "og:description", content: "Handwoven sarees, lehengas and bridal couture, made-to-order in India." },
+      {
+        property: "og:description",
+        content: "Handwoven sarees, lehengas and bridal couture, made-to-order in India.",
+      },
     ],
   }),
   component: Home,
 });
 
 const TESTIMONIALS = [
-  { name: "Ananya M.", city: "Mumbai", quote: "My Maaya lehenga felt like an heirloom from the very first try. The craftsmanship is unmatched.", rating: 5 },
-  { name: "Priya S.", city: "London", quote: "The concierge helped me design my reception saree from across the world. It arrived perfect.", rating: 5 },
-  { name: "Ishita R.", city: "Delhi", quote: "Soft, regal, and unmistakably mine. I will be wearing this for decades.", rating: 5 },
+  {
+    name: "Ananya M.",
+    city: "Mumbai",
+    quote:
+      "My Maaya lehenga felt like an heirloom from the very first try. The craftsmanship is unmatched.",
+    rating: 5,
+  },
+  {
+    name: "Priya S.",
+    city: "London",
+    quote:
+      "The concierge helped me design my reception saree from across the world. It arrived perfect.",
+    rating: 5,
+  },
+  {
+    name: "Ishita R.",
+    city: "Delhi",
+    quote: "Soft, regal, and unmistakably mine. I will be wearing this for decades.",
+    rating: 5,
+  },
 ];
 
 function Home() {
   const bestsellers = PRODUCTS.filter((p) => p.badge === "Bestseller" || p.compareAt).slice(0, 4);
-  const newArrivals = PRODUCTS.filter((p) => p.badge === "New").concat(PRODUCTS).slice(0, 4);
+  const newArrivals = PRODUCTS.filter((p) => p.badge === "New")
+    .concat(PRODUCTS)
+    .slice(0, 4);
 
   return (
     <div>
@@ -48,13 +74,13 @@ function Home() {
                 <span className="gold-divider" /> The Vivah Edit · AW26
               </p>
               <h1 className="mt-5 font-display text-5xl leading-[1.05] md:text-7xl">
-                Heirlooms,<br />
+                Heirlooms,
+                <br />
                 <em className="italic shimmer-text">re-imagined</em>.
               </h1>
               <p className="mt-6 max-w-md text-base leading-relaxed text-foreground/80">
-                Handwoven sarees, sculpted lehengas, and quietly opulent bridal
-                pieces — crafted in our Mumbai atelier and shipped, with care,
-                across the world.
+                Handwoven sarees, sculpted lehengas, and quietly opulent bridal pieces — crafted in
+                our Mumbai atelier and shipped, with care, across the world.
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <Link
@@ -111,8 +137,8 @@ function Home() {
           </p>
           <h2 className="mt-5 font-display text-4xl md:text-5xl">An atelier of stories</h2>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Three worlds, woven by hand. Each collection is a love letter to
-            an Indian craft, reinterpreted for now.
+            Three worlds, woven by hand. Each collection is a love letter to an Indian craft,
+            reinterpreted for now.
           </p>
         </div>
 
@@ -183,9 +209,9 @@ function Home() {
               For the bride who whispers, not shouts.
             </h2>
             <p className="mt-6 max-w-md text-sm leading-relaxed text-background/75">
-              A private, by-appointment experience with our couturiers — in
-              Mumbai, or on a video call from anywhere in the world. Sketches,
-              fabrics, fittings, and finally, your forever piece.
+              A private, by-appointment experience with our couturiers — in Mumbai, or on a video
+              call from anywhere in the world. Sketches, fabrics, fittings, and finally, your
+              forever piece.
             </p>
             <Link
               to="/shop"
@@ -205,7 +231,11 @@ function Home() {
             <p className="eyebrow">Just in</p>
             <h2 className="mt-3 font-display text-3xl md:text-4xl">New arrivals</h2>
           </div>
-          <Link to="/shop" search={{ category: "all" }} className="eyebrow inline-flex items-center gap-2 hover:text-gold transition-colors">
+          <Link
+            to="/shop"
+            search={{ category: "all" }}
+            className="eyebrow inline-flex items-center gap-2 hover:text-gold transition-colors"
+          >
             See more <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -221,13 +251,17 @@ function Home() {
         <div className="container-luxe">
           <div className="text-center">
             <p className="eyebrow flex items-center justify-center gap-3">
-              <span className="gold-divider" /> Words from our brides <span className="gold-divider" />
+              <span className="gold-divider" /> Words from our brides{" "}
+              <span className="gold-divider" />
             </p>
             <h2 className="mt-5 font-display text-4xl md:text-5xl">Worn with love</h2>
           </div>
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {TESTIMONIALS.map((t) => (
-              <figure key={t.name} className="bg-background p-8 shadow-[var(--shadow-card)] hover-lift">
+              <figure
+                key={t.name}
+                className="bg-background p-8 shadow-[var(--shadow-card)] hover-lift"
+              >
                 <div className="flex gap-0.5 text-gold">
                   {Array.from({ length: t.rating }).map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-gold" />

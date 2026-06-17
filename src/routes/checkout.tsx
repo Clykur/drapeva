@@ -31,7 +31,8 @@ function Checkout() {
         <p className="eyebrow mt-6">Confirmed</p>
         <h1 className="mt-3 font-display text-4xl md:text-5xl">Thank you, beautifully done.</h1>
         <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-          A confirmation is on its way. Our atelier will be in touch within 24 hours to schedule fittings.
+          A confirmation is on its way. Our atelier will be in touch within 24 hours to schedule
+          fittings.
         </p>
         <Link to="/" className="mt-10 inline-block border-b border-foreground pb-1 eyebrow">
           Back to the atelier
@@ -63,7 +64,11 @@ function Checkout() {
       </div>
 
       <form
-        onSubmit={(e) => { e.preventDefault(); clearCart(); setPlaced(true); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          clearCart();
+          setPlaced(true);
+        }}
         className="mt-12 grid gap-12 lg:grid-cols-[1.4fr_1fr]"
       >
         {/* Form */}
@@ -111,10 +116,16 @@ function Checkout() {
           <ul className="mt-6 divide-y divide-border">
             {cart.map((item) => (
               <li key={item.product.id + item.size} className="flex gap-4 py-4">
-                <img src={item.product.image} alt={item.product.name} className="h-24 w-18 object-cover" />
+                <img
+                  src={item.product.image}
+                  alt={item.product.name}
+                  className="h-24 w-18 object-cover"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="font-display text-base leading-tight">{item.product.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Size {item.size} · Qty {item.qty}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Size {item.size} · Qty {item.qty}
+                  </p>
                 </div>
                 <p className="text-sm">{formatINR(item.product.price * item.qty)}</p>
               </li>
@@ -124,7 +135,10 @@ function Checkout() {
             <Row label="Subtotal" value={formatINR(subtotal)} />
             <Row label="Shipping" value="Free" />
             <div className="border-t border-border pt-3" />
-            <Row label={<span className="eyebrow">Total</span>} value={<span className="font-display text-xl">{formatINR(total)}</span>} />
+            <Row
+              label={<span className="eyebrow">Total</span>}
+              value={<span className="font-display text-xl">{formatINR(total)}</span>}
+            />
           </div>
         </aside>
       </form>
@@ -141,7 +155,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Input({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+function Input({
+  label,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
   return (
     <label className="block">
       <span className="eyebrow mb-2 block">{label}</span>

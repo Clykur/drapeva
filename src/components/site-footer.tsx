@@ -9,8 +9,8 @@ export function SiteFooter() {
           <div>
             <span className="font-display text-3xl tracking-[0.2em]">MAAYA</span>
             <p className="mt-6 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              An atelier of heirloom Indian couture — handwoven, hand-finished,
-              and quietly contemporary. Crafted in India since 1998.
+              An atelier of heirloom Indian couture — handwoven, hand-finished, and quietly
+              contemporary. Crafted in India since 1998.
             </p>
             <form className="mt-8 flex max-w-sm border-b border-foreground/30 pb-2">
               <input
@@ -35,7 +35,13 @@ export function SiteFooter() {
             },
             {
               title: "Service",
-              links: ["WhatsApp Concierge", "Shipping & Returns", "Care Guide", "Sizing", "Contact"],
+              links: [
+                "WhatsApp Concierge",
+                "Shipping & Returns",
+                "Care Guide",
+                "Sizing",
+                "Contact",
+              ],
             },
           ].map((col) => (
             <div key={col.title}>
@@ -63,8 +69,12 @@ export function SiteFooter() {
             <a href="#" className="hover:text-foreground inline-flex items-center gap-1.5">
               <Instagram className="h-4 w-4" /> @maaya.couture
             </a>
-            <a href="#" className="hover:text-foreground">Privacy</a>
-            <a href="#" className="hover:text-foreground">Terms</a>
+            <a href="#" className="hover:text-foreground">
+              Privacy
+            </a>
+            <a href="#" className="hover:text-foreground">
+              Terms
+            </a>
           </div>
         </div>
       </div>

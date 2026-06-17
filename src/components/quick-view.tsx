@@ -16,7 +16,9 @@ export function QuickView() {
 
   useEffect(() => {
     document.body.style.overflow = quickView ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [quickView]);
 
   if (!quickView) return null;
@@ -33,7 +35,11 @@ export function QuickView() {
         >
           <X className="h-4 w-4" />
         </button>
-        <img src={quickView.image} alt={quickView.name} className="h-72 w-full object-cover md:h-full" />
+        <img
+          src={quickView.image}
+          alt={quickView.name}
+          className="h-72 w-full object-cover md:h-full"
+        />
         <div className="flex flex-col overflow-y-auto p-7 md:p-10">
           <p className="eyebrow">{quickView.collection}</p>
           <h3 className="mt-2 font-display text-2xl md:text-3xl">{quickView.name}</h3>
@@ -70,7 +76,10 @@ export function QuickView() {
 
           <div className="mt-auto pt-8 flex flex-col gap-3 sm:flex-row">
             <button
-              onClick={() => { addToCart(quickView, size); setQuickView(null); }}
+              onClick={() => {
+                addToCart(quickView, size);
+                setQuickView(null);
+              }}
               className="flex-1 bg-foreground py-4 text-xs font-medium tracking-[0.25em] uppercase text-background hover:bg-gold hover:text-gold-foreground transition-colors"
             >
               Add to bag

@@ -1,0 +1,62 @@
+name: Maaya Couture CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: maaya_couture_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-color: "always"
+          node-version: "18.x"
+
+      - name: Install Root & Frontend Dependencies
+        run: npm ci
+
+      - name: Build Frontend
+        run: npm run build
+
+      - name: Install Backend Dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Run Prisma Generate & Migrations (Test DB)
+        run: |
+          cd server
+          npx prisma generate
+          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/maaya_couture_test?schema=public" npx prisma db push
+
+      - name: Build Backend (TS compilation)
+        run: |
+          cd server
+          npm run build
+
+      - name: Build Docker Images (Verify containerization)
+        run: |
+          docker build -f Dockerfile.backend -t maaya-backend:latest .
+          docker build -f Dockerfile.frontend -t maaya-frontend:latest .

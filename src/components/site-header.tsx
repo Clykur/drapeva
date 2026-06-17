@@ -52,11 +52,7 @@ export function SiteHeader() {
         }`}
       >
         <div className="container-luxe grid grid-cols-[auto_1fr_auto] items-center gap-6 py-4 md:py-5">
-          <button
-            className="md:hidden -ml-2 p-2"
-            aria-label="Menu"
-            onClick={() => setOpen(true)}
-          >
+          <button className="md:hidden -ml-2 p-2" aria-label="Menu" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
 
@@ -80,24 +76,23 @@ export function SiteHeader() {
             </Link>
           </nav>
 
-          <Link
-            to="/"
-            className="justify-self-center text-center"
-            aria-label="Maaya home"
-          >
-            <span className="font-display text-2xl md:text-3xl tracking-[0.2em]">
-              MAAYA
-            </span>
-            <span className="block eyebrow mt-0.5 text-[0.55rem]">
-              Couture · Est. 1998
-            </span>
+          <Link to="/" className="justify-self-center text-center" aria-label="Maaya home">
+            <span className="font-display text-2xl md:text-3xl tracking-[0.2em]">MAAYA</span>
+            <span className="block eyebrow mt-0.5 text-[0.55rem]">Couture · Est. 1998</span>
           </Link>
 
           <div className="flex items-center gap-1 md:gap-2 justify-self-end">
-            <button className="hidden md:inline-flex p-2 hover:text-gold transition-colors" aria-label="Search">
+            <button
+              className="hidden md:inline-flex p-2 hover:text-gold transition-colors"
+              aria-label="Search"
+            >
               <Search className="h-[18px] w-[18px]" />
             </button>
-            <Link to="/wishlist" className="relative p-2 hover:text-gold transition-colors" aria-label="Wishlist">
+            <Link
+              to="/wishlist"
+              className="relative p-2 hover:text-gold transition-colors"
+              aria-label="Wishlist"
+            >
               <Heart className="h-[18px] w-[18px]" />
               {wishlist.length > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-medium text-gold-foreground">
@@ -105,7 +100,10 @@ export function SiteHeader() {
                 </span>
               )}
             </Link>
-            <button className="hidden md:inline-flex p-2 hover:text-gold transition-colors" aria-label="Account">
+            <button
+              className="hidden md:inline-flex p-2 hover:text-gold transition-colors"
+              aria-label="Account"
+            >
               <User className="h-[18px] w-[18px]" />
             </button>
             <button
@@ -147,7 +145,11 @@ export function SiteHeader() {
                   {n.label}
                 </Link>
               ))}
-              <Link to="/wishlist" onClick={() => setOpen(false)} className="border-b border-border/60 py-4 font-display text-2xl">
+              <Link
+                to="/wishlist"
+                onClick={() => setOpen(false)}
+                className="border-b border-border/60 py-4 font-display text-2xl"
+              >
                 Wishlist
               </Link>
             </nav>

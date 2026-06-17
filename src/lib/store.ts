@@ -30,14 +30,11 @@ export const useShop = create<ShopState>()(
         set((s) => {
           const existing = s.cart.find((c) => c.product.id === product.id && c.size === size);
           const cart = existing
-            ? s.cart.map((c) =>
-                c === existing ? { ...c, qty: c.qty + qty } : c,
-              )
+            ? s.cart.map((c) => (c === existing ? { ...c, qty: c.qty + qty } : c))
             : [...s.cart, { product, size, qty }];
           return { cart, cartOpen: true };
         }),
-      removeFromCart: (id) =>
-        set((s) => ({ cart: s.cart.filter((c) => c.product.id !== id) })),
+      removeFromCart: (id) => set((s) => ({ cart: s.cart.filter((c) => c.product.id !== id) })),
       updateQty: (id, qty) =>
         set((s) => ({
           cart: s.cart
@@ -61,5 +58,4 @@ export const useShop = create<ShopState>()(
 
 export const cartTotal = (cart: CartItem[]) =>
   cart.reduce((s, c) => s + c.product.price * c.qty, 0);
-export const cartCount = (cart: CartItem[]) =>
-  cart.reduce((s, c) => s + c.qty, 0);
+export const cartCount = (cart: CartItem[]) => cart.reduce((s, c) => s + c.qty, 0);
