@@ -62,7 +62,7 @@ function ProductPage() {
         {/* Gallery */}
         <div className="grid gap-3 md:grid-cols-[80px_1fr]">
           <div className="order-2 flex gap-3 md:order-1 md:flex-col">
-            {product.images.map((img, i) => (
+            {product.images.map((img: string, i: number) => (
               <button
                 key={i}
                 onClick={() => setActive(i)}
@@ -152,7 +152,7 @@ function ProductPage() {
             {[
               { id: "details", title: "Details", content: (
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  {product.details.map((d) => <li key={d}>— {d}</li>)}
+                  {product.details.map((d: string) => <li key={d}>— {d}</li>)}
                 </ul>
               )},
               { id: "shipping", title: "Shipping & Returns", content: (

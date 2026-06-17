@@ -22,12 +22,12 @@ export const Route = createFileRoute("/shop")({
 
 const FABRICS = ["Silk", "Banarasi", "Georgette", "Velvet"] as const;
 const OCCASIONS = ["Bridal", "Festive", "Reception", "Everyday"] as const;
-const PRICE_BANDS = [
+const PRICE_BANDS: { label: string; min?: number; max?: number }[] = [
   { label: "Under ₹30,000", max: 30000 },
   { label: "₹30,000 – ₹50,000", min: 30000, max: 50000 },
   { label: "₹50,000 – ₹75,000", min: 50000, max: 75000 },
   { label: "Above ₹75,000", min: 75000 },
-] as const;
+];
 
 type Sort = "featured" | "price-asc" | "price-desc" | "new";
 
