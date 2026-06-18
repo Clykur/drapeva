@@ -34,29 +34,23 @@ jobs:
           node-color: "always"
           node-version: "18.x"
 
-      - name: Install Root & Frontend Dependencies
+      - name: Install All Dependencies (Monorepo)
         run: npm ci
-
-      - name: Build Frontend
-        run: npm run build
-
-      - name: Install Backend Dependencies
-        run: |
-          cd server
-          npm ci
 
       - name: Run Prisma Generate & Migrations (Test DB)
         run: |
-          cd server
-          npx prisma generate
-          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/maaya_couture_test?schema=public" npx prisma db push
+          npm run prisma:generate
+          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/maaya_couture_test?schema=public" npm run prisma:migrate
+        env:
+          NODE_ENV: development
 
       - name: Build Backend (TS compilation)
-        run: |
-          cd server
-          npm run build
+        run: npm run build:backend
+
+      - name: Build Frontend
+        run: npm run build:frontend
 
       - name: Build Docker Images (Verify containerization)
         run: |
-          docker build -f Dockerfile.backend -t maaya-backend:latest .
-          docker build -f Dockerfile.frontend -t maaya-frontend:latest .
+          docker build -f backend/Dockerfile -t maaya-backend:latest ./backend
+          docker build -f frontend/Dockerfile -t maaya-frontend:latest ./frontend
