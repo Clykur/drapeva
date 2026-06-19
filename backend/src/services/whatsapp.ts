@@ -36,7 +36,7 @@ export class WhatsAppService {
   }
 
   static async sendOrderUpdate(to: string, orderId: string, status: string) {
-    const msg = `Maaya Couture: Your order #${orderId} status has been updated to "${status}". Track progress details in your account dashboard. For immediate enquiries, please reply directly.`;
+    const msg = `Drapeva: Your order #${orderId} status has been updated to "${status}". Track progress details in your account dashboard. For immediate enquiries, please reply directly.`;
     return this.sendNotification(to, msg);
   }
 
@@ -46,7 +46,7 @@ export class WhatsAppService {
     dateStr: string,
     timeSlot: string,
   ) {
-    const msg = `Dear ${name}, this is a gentle reminder that your consultation appointment at Maaya Couture is scheduled for ${dateStr} at ${timeSlot}. Looking forward to hosting you.`;
+    const msg = `Dear ${name}, this is a gentle reminder that your consultation appointment at Drapeva is scheduled for ${dateStr} at ${timeSlot}. Looking forward to hosting you.`;
     return this.sendNotification(to, msg);
   }
 }

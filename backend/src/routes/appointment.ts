@@ -103,7 +103,7 @@ router.put(
 
       await EmailService.sendEmail(
         appointment.email,
-        `Your Maaya Couture Consultation Status Updated`,
+        `Your Drapeva Consultation Status Updated`,
         `<p>Dear ${appointment.name},</p><p>The status of your appointment on ${dateStr} at ${appointment.timeSlot} has been updated to: <strong>${status}</strong>.</p>`,
       );
 

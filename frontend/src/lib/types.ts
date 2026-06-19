@@ -1,5 +1,5 @@
 // ============================================================
-// MAAYA COUTURE — Complete TypeScript Types
+// DRAPEVA — Complete TypeScript Types
 // Generated from Supabase schema
 // ============================================================
 

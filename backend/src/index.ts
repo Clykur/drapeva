@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
   console.log(`=========================================`);
-  console.log(`  MAAYA COUTURE BACKEND SERVER RUNNING   `);
+  console.log(`  DRAPEVA BACKEND SERVER RUNNING         `);
   console.log(`  Port: ${PORT}                          `);
   console.log(`  Environment: ${process.env.NODE_ENV || "development"}`);
   console.log(`=========================================`);

@@ -32,7 +32,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
 
     // Notify Support Admin
     await EmailService.sendEmail(
-      "support@maayacouture.com",
+      "support@drapeva.com",
       `New Support Ticket: ${data.subject}`,
       `<p>Received support ticket from ${data.name} (${data.email}):</p><p>Message: ${data.message}</p>`,
     );
@@ -60,8 +60,8 @@ router.post("/newsletter", async (req: Request, res: Response, next: NextFunctio
 
     await EmailService.sendEmail(
       email,
-      "Welcome to the Maaya Journal - Newsletter",
-      `<h3>Welcome to Maaya Couture</h3><p>Thank you for subscribing to our weekly journal. You will receive updates on new collections and artisan stories.</p>`,
+      "Welcome to the Drapeva Journal - Newsletter",
+      `<h3>Welcome to Drapeva</h3><p>Thank you for subscribing to our weekly journal. You will receive updates on new collections and artisan stories.</p>`,
     );
 
     res.json({ message: "Subscription successful", subscriber });
