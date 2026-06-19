@@ -41,7 +41,7 @@ export class PaymentService {
           price_data: {
             currency,
             product_data: {
-              name: `Maaya Couture - Order #${orderId}`,
+              name: `Drapeva - Order #${orderId}`,
             },
             unit_amount: Math.round(amount * 100), // Stripe expects paisa/cents
           },

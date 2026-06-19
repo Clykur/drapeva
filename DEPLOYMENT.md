@@ -1,4 +1,4 @@
-# Deployment Guide - Golden Silk Emporium (Maaya Couture)
+# Deployment Guide - Golden Silk Emporium (Drapeva)
 
 This guide documents the procedures for local development and production launch of both the frontend client and backend API.
 
@@ -6,7 +6,7 @@ This guide documents the procedures for local development and production launch 
 
 ## 1. Project Overview
 
-Golden Silk Emporium (Maaya Couture) is organized as an **npm workspaces monorepo** to keep the client and server code co-located while allowing independent building and deployment.
+Golden Silk Emporium (Drapeva) is organized as an **npm workspaces monorepo** to keep the client and server code co-located while allowing independent building and deployment.
 
 ### Repository Structure
 ```
@@ -188,7 +188,7 @@ Before opening the storefront to the public, perform this checklist:
 - [ ] **Frontend Builds Successfully**: Verify `npm run build` completes on the frontend without errors.
 - [ ] **Backend Builds Successfully**: Verify `npm run build` completes on the backend without compilation errors.
 - [ ] **Database Connected**: Verify that DB queries execute (check logs for successful seeding or product load).
-- [ ] **Authentication Working**: Log in and out with user accounts (`customer@maayacouture.com`) and verify access tokens are stored and refreshed.
+- [ ] **Authentication Working**: Log in and out with user accounts (`customer@drapeva.com`) and verify access tokens are stored and refreshed.
 - [ ] **Images Loading Correctly**: Browse collections and product cards. Ensure no blank boxes, broken images, or placeholding graphics appear.
 - [ ] **Product Pages Working**: Open single product routes (e.g. `/product/noor-crimson`). Validate description and images are shown.
 - [ ] **API Endpoints Responding**: Check `/health` endpoint responds with a 200 HTTP status.

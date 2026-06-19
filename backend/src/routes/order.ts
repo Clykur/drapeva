@@ -353,7 +353,7 @@ router.put(
       await WhatsAppService.sendOrderUpdate(order.phone, order.id, status);
       await EmailService.sendEmail(
         order.email,
-        `Your Maaya Couture Order Update - #${order.id}`,
+        `Your Drapeva Order Update - #${order.id}`,
         `<p>Dear ${order.name},</p><p>The status of your couture piece #${order.id} has been updated to: <strong>${status}</strong>.</p>`,
       );
 

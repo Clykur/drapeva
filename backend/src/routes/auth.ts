@@ -203,7 +203,7 @@ router.post("/forgot-password", async (req: Request, res: Response, next: NextFu
 
       await EmailService.sendEmail(
         email,
-        "Reset Your Password - Maaya Couture",
+        "Reset Your Password - Drapeva",
         `<p>You requested a password reset. Click <a href="${resetLink}">here</a> to reset your password. This link expires in 1 hour.</p>`,
       );
     }
