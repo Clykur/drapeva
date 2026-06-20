@@ -13,6 +13,23 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_API_URL || "http://localhost:5001";
+    return [
+      {
+        source: "/api/appointments",
+        destination: `${backendUrl}/api/appointments`,
+      },
+      {
+        source: "/api/payments/create",
+        destination: `${backendUrl}/api/payments/create`,
+      },
+      {
+        source: "/api/payments/verify",
+        destination: `${backendUrl}/api/payments/verify`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

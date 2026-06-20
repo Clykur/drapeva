@@ -360,8 +360,7 @@ export const ordersApi = {
     } = await supabase.auth.getSession();
     const token = session?.access_token || "";
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-    const response = await fetch(`${apiUrl}/api/payments/create`, {
+    const response = await fetch(`/api/payments/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -389,8 +388,7 @@ export const ordersApi = {
     } = await supabase.auth.getSession();
     const token = session?.access_token || "";
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-    const response = await fetch(`${apiUrl}/api/payments/verify`, {
+    const response = await fetch(`/api/payments/verify`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1200,8 +1198,7 @@ export const appointmentsApi = {
     type: "IN_PERSON" | "VIDEO";
     notes?: string;
   }) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-    const response = await fetch(`${apiUrl}/api/appointments`, {
+    const response = await fetch(`/api/appointments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
