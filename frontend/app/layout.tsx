@@ -7,8 +7,9 @@ import { SiteFooter } from "@/components/site-footer";
 import { CartDrawer } from "@/components/cart-drawer";
 import { QuickView } from "@/components/quick-view";
 import { WhatsAppButton } from "@/components/whatsapp-button";
+import { SmoothScroll } from "@/components/smooth-scroll";
 
-import { Inter, Playfair_Display } from "next/font/google";
+import { Inter, Limelight } from "next/font/google";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -16,24 +17,25 @@ const inter = Inter({
   display: "swap",
 });
 
-const playfair = Playfair_Display({
+const limelight = Limelight({
+  weight: "400",
   subsets: ["latin"],
-  variable: "--font-display-next",
+  variable: "--font-limelight",
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#b8944b",
+  themeColor: "#ffffff",
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://drapeva.com"),
   title: {
-    default: "Drapeva — Premium Indian Sarees",
+    default: "Drapeva: Premium Indian Sarees for Every Generation",
     template: "%s | Drapeva",
   },
   description:
-    "Discover a curated collection of premium sarees combining comfort, quality, and timeless elegance. Shop Kanjivaram, Banarasi, Organza, and designer weaves.",
+    "Discover a curated collection of premium sarees combining comfort, quality, and timeless elegance. Shop authentic Kanjivaram, Banarasi, and Designer weaves perfect for young trendsetters, radiant brides, and graceful elders alike.",
   keywords: [
     "Indian sarees",
     "premium sarees",
@@ -45,6 +47,11 @@ export const metadata: Metadata = {
     "luxury sarees",
     "bridal sarees",
     "silk sarees",
+    "sarees for older women",
+    "trendy sarees for young women",
+    "authentic Indian weaves",
+    "traditional sarees online",
+    "comfortable sarees",
   ],
   authors: [{ name: "Drapeva" }],
   creator: "Drapeva",
@@ -64,23 +71,23 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IN",
     siteName: "Drapeva",
-    title: "Drapeva — Premium Indian Sarees",
+    title: "Drapeva: Premium Indian Sarees for Every Generation",
     description:
-      "Discover a curated collection of premium sarees combining comfort, quality, and timeless elegance.",
+      "Discover a curated collection of premium sarees combining comfort, quality, and timeless elegance. Authentic weaves perfect for all ages.",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Drapeva — Premium Indian Sarees",
+        alt: "Drapeva: Premium Indian Sarees",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Drapeva — Premium Indian Sarees",
+    title: "Drapeva: Premium Indian Sarees for Every Generation",
     description:
-      "Discover a curated collection of premium sarees combining comfort, quality, and timeless elegance.",
+      "Discover a curated collection of premium sarees combining comfort, quality, and timeless elegance. Authentic weaves perfect for all ages.",
     images: ["/og-image.jpg"],
   },
 };
@@ -93,23 +100,29 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${playfair.variable}`}
+      className={`${inter.variable} ${limelight.variable}`}
       data-scroll-behavior="smooth"
+      suppressHydrationWarning
     >
       <head />
-      <body className="antialiased min-h-screen bg-background text-foreground">
-        <Providers>
-          <div className="flex flex-col min-h-screen">
-            <Suspense fallback={<div className="h-[72px] md:h-[88px] bg-background" />}>
-              <SiteHeader />
-            </Suspense>
-            <main className="flex-1">{children}</main>
-            <SiteFooter />
-          </div>
-          <CartDrawer />
-          <QuickView />
-          <WhatsAppButton />
-        </Providers>
+      <body
+        className="antialiased min-h-screen bg-background text-foreground"
+        suppressHydrationWarning
+      >
+        <SmoothScroll>
+          <Providers>
+            <div className="flex flex-col min-h-screen">
+              <Suspense fallback={<div className="h-[72px] md:h-[88px] bg-background" />}>
+                <SiteHeader />
+              </Suspense>
+              <main className="flex-1">{children}</main>
+              <SiteFooter />
+            </div>
+            <CartDrawer />
+            <QuickView />
+            <WhatsAppButton />
+          </Providers>
+        </SmoothScroll>
       </body>
     </html>
   );

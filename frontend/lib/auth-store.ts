@@ -7,6 +7,7 @@ type AuthState = {
   user: Profile | null;
   session: { access_token: string; refresh_token: string } | null;
   loading: boolean;
+  isLoggingOut: boolean;
   setAuth: (user: Profile, session: { access_token: string; refresh_token: string }) => void;
   setUser: (user: Profile | null) => void;
   logout: () => Promise<void>;
@@ -20,9 +21,11 @@ export const useAuth = create<AuthState>()(
       user: null,
       session: null,
       loading: true,
+      isLoggingOut: false,
       setAuth: (user, session) => set({ user, session, loading: false }),
       setUser: (user) => set({ user, loading: false }),
       logout: async () => {
+        set({ isLoggingOut: true });
         await supabase.auth.signOut();
         set({ user: null, session: null, loading: false });
         try {
@@ -32,6 +35,7 @@ export const useAuth = create<AuthState>()(
         } catch (e) {
           console.error("Error clearing shop store on logout:", e);
         }
+        setTimeout(() => set({ isLoggingOut: false }), 2000);
       },
       isAuthenticated: () => !!get().user,
       isAdmin: () => get().user?.role === "admin",

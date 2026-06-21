@@ -61,7 +61,7 @@ function BestsellersContent() {
               Mark products as "Bestseller" in the admin panel.
             </p>
             <Link
-              href="/shop"
+              href="/collections"
               className="mt-6 inline-flex items-center gap-2 border-b border-foreground pb-1 eyebrow text-xs"
             >
               Browse all sarees <ArrowRight className="h-3 w-3" />

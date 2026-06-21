@@ -45,9 +45,12 @@ export default function Wishlist() {
   return (
     <DashboardLayout title="My Wishlist" subtitle="Saved Pieces">
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="border border-border animate-pulse h-72 bg-champagne/10" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="border border-border animate-pulse aspect-[3/4] bg-champagne/10"
+            />
           ))}
         </div>
       ) : wishlist.length === 0 ? (
@@ -59,13 +62,13 @@ export default function Wishlist() {
           </p>
           <Link
             href={`/shop?category=${"all"}`}
-            className="mt-6 inline-block bg-foreground text-background px-6 py-3 text-xs uppercase tracking-widest"
+            className="mt-6 inline-block bg-foreground text-background px-6 py-3 text-xs uppercase tracking-widest hover:bg-gold hover:text-gold-foreground transition-colors"
           >
             Explore Collections
           </Link>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
           {wishlist.map((item: any) => {
             const product = item.product;
             const image =

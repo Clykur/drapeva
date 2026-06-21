@@ -63,7 +63,11 @@ export default function OtpVerification() {
             refresh_token: data.session.refresh_token,
           });
         }
-        toast.success("Verified! Welcome to the atelier.");
+        toast.success(
+          profile?.name
+            ? `Verified! Welcome back, ${profile.name.split(" ")[0]}.`
+            : "Verified! Welcome to the atelier.",
+        );
         if (profile?.role === "admin") {
           router.push("/admin");
         } else {

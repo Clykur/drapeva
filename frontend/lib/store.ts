@@ -49,7 +49,7 @@ export const useShop = create<ShopState>()(
             }
           });
 
-          return { cart, cartOpen: true };
+          return { cart };
         }),
       removeFromCart: (id, size) =>
         set((s) => {

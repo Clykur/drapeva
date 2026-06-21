@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
@@ -31,6 +31,13 @@ export default function Register() {
   };
 
   const strength = passwordStrength();
+
+  const { user, loading: authLoading } = useAuth();
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/");
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +81,11 @@ export default function Register() {
             refresh_token: data.session.refresh_token,
           });
         }
-        toast.success("Welcome to the Drapeva atelier!");
+        toast.success(
+          profile?.name
+            ? `Welcome to Drapeva, ${profile.name.split(" ")[0]}!`
+            : "Welcome to the Drapeva atelier!",
+        );
         router.push("/");
       } else {
         // Confirmation required
@@ -96,8 +107,8 @@ export default function Register() {
 
   if (registered) {
     return (
-      <div className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-16">
-        <div className="w-full max-w-md text-center border border-border bg-champagne/30 p-10 shadow-soft">
+      <div className="flex h-[100svh] overflow-hidden items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md text-center p-0">
           <CheckCircle className="h-12 w-12 text-gold mx-auto mb-4" />
           <p className="eyebrow text-gold">Check Verification</p>
           <h1 className="mt-3 font-display text-3xl">
@@ -129,7 +140,7 @@ export default function Register() {
   }
 
   return (
-    <div className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-16">
+    <div className="flex h-[100svh] overflow-hidden items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <p className="eyebrow text-gold">The Atelier</p>
@@ -137,18 +148,18 @@ export default function Register() {
           <span className="gold-divider mt-4 block mx-auto" />
         </div>
 
-        <div className="border border-border bg-champagne/30 shadow-soft">
+        <div>
           {/* Tab switcher */}
-          <div className="grid grid-cols-2 border-b border-border">
+          <div className="flex justify-center gap-8 border-b border-border/40 mb-8">
             <button
               onClick={() => {
                 setTab("email");
                 setPhone("");
               }}
-              className={`flex items-center justify-center gap-2 py-4 text-xs uppercase tracking-widest font-medium transition-colors ${
+              className={`flex items-center justify-center gap-2 pb-4 text-xs uppercase tracking-widest font-medium transition-colors border-b-2 ${
                 tab === "email"
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <Mail className="h-3.5 w-3.5" />
@@ -159,10 +170,10 @@ export default function Register() {
                 setTab("phone");
                 setPhone("");
               }}
-              className={`flex items-center justify-center gap-2 py-4 text-xs uppercase tracking-widest font-medium transition-colors ${
+              className={`flex items-center justify-center gap-2 pb-4 text-xs uppercase tracking-widest font-medium transition-colors border-b-2 ${
                 tab === "phone"
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <Phone className="h-3.5 w-3.5" />
@@ -170,7 +181,7 @@ export default function Register() {
             </button>
           </div>
 
-          <div className="p-8 md:p-10">
+          <div className="p-0">
             <form onSubmit={handleSubmit} className="space-y-5">
               <label className="block">
                 <span className="eyebrow mb-2 block">Full Name</span>

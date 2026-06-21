@@ -60,19 +60,30 @@ export function SiteFooter() {
   // Show the simple minimal footer on customer account pages or everywhere if the user is logged in
   if (footerType === "minimal" || user) {
     return (
-      <footer className="w-full border-t border-border bg-champagne/10 py-6 mt-auto">
-        <div className="mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+      <footer className="w-full border-t border-border bg-champagne/10 mt-auto">
+        <div className="mx-auto mt-5 max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} Drapeva. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-6">
-            <Link href="/support" className="transition-colors hover:text-foreground">
-              Privacy Policy
-            </Link>
             <Link href="/support" className="transition-colors hover:text-foreground">
               Terms & Conditions
             </Link>
             <Link href="/support" className="transition-colors hover:text-foreground">
               Support
             </Link>
+          </div>
+        </div>
+        <div className="bg-ink text-background overflow-hidden h-14 md:h-20 flex items-center mt-5 border-t border-border/20">
+          <div className="flex animate-marquee whitespace-nowrap text-lg md:text-2xl tracking-[0.32em] uppercase font-limelight">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="flex shrink-0 gap-12 px-6 items-center">
+                <span className="pt-1.5">DRAPEVA</span>
+                <img
+                  src="/correct.png"
+                  alt="*"
+                  className="h-6 w-6 md:h-8 md:w-8 invert brightness-0"
+                />
+              </div>
+            ))}
           </div>
         </div>
       </footer>
@@ -85,17 +96,13 @@ export function SiteFooter() {
         <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
           {/* Brand */}
           <div className="-mt-6">
-            <Link
-              href={user ? "/dashboard" : "/"}
-              className="inline-block select-none"
-              aria-label="Drapeva home"
-            >
+            <Link href="/" className="inline-block select-none" aria-label="Drapeva home">
               <img src="/logo.png" alt="Drapeva" className="h-36 w-36 rounded-full object-cover" />
             </Link>
 
             <h2
               className="mt-5 text-4xl tracking-[0.22em] text-foreground"
-              style={{ fontFamily: "'Cormorant Garamond', serif" }}
+              style={{ fontFamily: "'limelight', serif" }}
             >
               DRAPEVA
             </h2>
@@ -113,13 +120,13 @@ export function SiteFooter() {
           {/* Shop */}
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground">
-              Shop
+              Collection
             </h4>
 
             <ul className="mt-5 space-y-3">
               <li>
                 <Link
-                  href="/shop"
+                  href="/collections"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   All Sarees
@@ -137,7 +144,7 @@ export function SiteFooter() {
 
               <li>
                 <Link
-                  href="/shop?category=wedding-sarees"
+                  href="/collections?category=wedding-sarees"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Collection
@@ -194,7 +201,7 @@ export function SiteFooter() {
                   href="/support"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  FAQs
+                  Terms & Conditions
                 </Link>
               </li>
             </ul>
@@ -324,15 +331,23 @@ export function SiteFooter() {
               <Instagram className="h-4 w-4" />
               Instagram
             </a>
-
-            <Link href="/support" className="transition-colors hover:text-foreground">
-              Privacy Policy
-            </Link>
-
-            <Link href="/support" className="transition-colors hover:text-foreground">
-              Terms & Conditions
-            </Link>
           </div>
+        </div>
+      </div>
+
+      {/* Large Footer Marquee */}
+      <div className="bg-ink text-background overflow-hidden h-14 md:h-20 flex items-center mt-1 border-t border-border/20">
+        <div className="flex animate-marquee whitespace-nowrap text-lg md:text-2xl tracking-[0.32em] uppercase font-limelight">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="flex shrink-0 gap-12 px-6 items-center">
+              <span className="pt-1.5">DRAPEVA</span>
+              <img
+                src="/correct.png"
+                alt="*"
+                className="h-6 w-6 md:h-8 md:w-8 invert brightness-0"
+              />
+            </div>
+          ))}
         </div>
       </div>
     </footer>

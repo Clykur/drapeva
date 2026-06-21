@@ -1,7 +1,7 @@
 "use client";
 
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useShop, cartTotal } from "@/lib/store";
 import { formatINR } from "@/lib/products";
@@ -12,21 +12,36 @@ export function CartDrawer() {
   const cart = useShop((s) => s.cart);
   const updateQty = useShop((s) => s.updateQty);
   const removeFromCart = useShop((s) => s.removeFromCart);
+  const [renderCart, setRenderCart] = useState(false);
 
   useEffect(() => {
-    document.body.style.overflow = cartOpen ? "hidden" : "";
+    if (cartOpen) {
+      setRenderCart(true);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      const timer = setTimeout(() => setRenderCart(false), 350);
+      return () => clearTimeout(timer);
+    }
     return () => {
       document.body.style.overflow = "";
     };
   }, [cartOpen]);
 
-  if (!cartOpen) return null;
+  if (!renderCart) return null;
   const total = cartTotal(cart);
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-ink/40 animate-rise" onClick={closeCart} />
-      <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-background shadow-2xl animate-rise">
+      <div
+        className={`absolute inset-0 bg-ink/40 ${
+          cartOpen ? "animate-fade-in" : "animate-fade-out"
+        }`}
+        onClick={closeCart}
+      />
+      <aside
+        className={`absolute inset-y-0 right-0 grid w-full max-w-md grid-rows-[auto_minmax(0,1fr)_auto] bg-background shadow-2xl overflow-hidden ${cartOpen ? "animate-slide-left" : "animate-slide-right"}`}
+      >
         <header className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
             <p className="eyebrow">Your bag</p>
@@ -39,7 +54,11 @@ export function CartDrawer() {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div
+          className="flex-1 overflow-y-auto overscroll-contain px-6 py-6"
+          style={{ WebkitOverflowScrolling: "touch" }}
+          data-lenis-prevent="true"
+        >
           {cart.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <ShoppingBag className="h-10 w-10 text-muted-foreground" />
@@ -48,7 +67,7 @@ export function CartDrawer() {
                 Let's find you something beautiful.
               </p>
               <Link
-                href="/shop?category=all"
+                href="/collections?category=all"
                 onClick={closeCart}
                 className="mt-6 border-b border-foreground pb-1 eyebrow"
               >
@@ -108,7 +127,7 @@ export function CartDrawer() {
         </div>
 
         {cart.length > 0 && (
-          <footer className="border-t border-border p-6">
+          <footer className="border-t border-border p-6 bg-background">
             <div className="flex items-baseline justify-between">
               <span className="eyebrow">Subtotal</span>
               <span className="font-display text-2xl">{formatINR(total)}</span>

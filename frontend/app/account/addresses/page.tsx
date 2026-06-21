@@ -223,24 +223,25 @@ export default function AddressBook() {
   const saving = createMut.isPending || updateMut.isPending;
 
   return (
-    <DashboardLayout title="Address Book" subtitle="Saved Addresses">
-      {/* Add button */}
-      {!showForm && (
-        <div className="flex justify-end">
+    <DashboardLayout
+      title="Address Book"
+      subtitle="Saved Addresses"
+      headerAction={
+        !showForm && (
           <button
             onClick={() => {
               setShowForm(true);
               setEditId(null);
               setForm({ ...emptyForm });
             }}
-            className="inline-flex items-center gap-2 border border-foreground px-5 py-3 text-xs uppercase tracking-wider font-medium hover:bg-foreground hover:text-background transition-colors"
+            className="inline-flex items-center gap-2 bg-foreground text-background px-5 py-3 text-xs uppercase tracking-wider font-medium hover:bg-gold hover:text-gold-foreground transition-colors"
           >
             <Plus className="h-4 w-4" />
             Add New Address
           </button>
-        </div>
-      )}
-
+        )
+      }
+    >
       {/* Address Form */}
       {showForm && (
         <form

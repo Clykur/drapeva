@@ -69,7 +69,7 @@ export async function updateSession(request: NextRequest) {
   // Only redirect when we POSITIVELY know the user is not authenticated
   // (i.e. getUser() succeeded and returned null). If fetch failed, let
   // the client-side DashboardLayout guard handle it instead.
-  if (nextPath.startsWith("/account") || nextPath.startsWith("/dashboard")) {
+  if (nextPath.startsWith("/account")) {
     // Only redirect if we were able to reach Supabase AND user is null
     if (user === null) {
       // Check if the fetch succeeded by verifying supabase was reachable:

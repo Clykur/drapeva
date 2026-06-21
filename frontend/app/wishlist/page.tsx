@@ -39,7 +39,7 @@ export default function Wishlist() {
           </p>
           <div className="pt-2">
             <Link
-              href="/shop"
+              href="/collections"
               className="bg-foreground text-background px-7 py-3.5 text-xs font-semibold tracking-widest uppercase hover:bg-gold hover:text-gold-foreground transition-all duration-300 inline-flex items-center gap-2 group"
             >
               Explore Collection{" "}

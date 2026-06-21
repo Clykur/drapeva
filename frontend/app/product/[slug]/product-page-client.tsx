@@ -152,14 +152,11 @@ export default function ProductPageClient({ initialProduct, slug }: ProductPageC
 
       <div className="container-luxe pt-6">
         <nav className="text-xs uppercase tracking-[0.2em] text-muted-foreground flex flex-wrap items-center">
-          <Link
-            href={isAuthenticated ? "/dashboard" : "/"}
-            className="hover:text-foreground transition-colors"
-          >
+          <Link href="/" className="hover:text-foreground transition-colors">
             Home
           </Link>
           <span className="mx-2 text-border">/</span>
-          <Link href="/shop" className="hover:text-foreground transition-colors">
+          <Link href="/collections" className="hover:text-foreground transition-colors">
             Shop
           </Link>
           {product.category && (
@@ -653,7 +650,7 @@ export default function ProductPageClient({ initialProduct, slug }: ProductPageC
         <div className="flex items-end justify-between border-b border-border pb-6">
           <h2 className="font-display text-3xl">You may also love</h2>
           <Link
-            href="/shop"
+            href="/collections"
             className="eyebrow inline-flex items-center gap-2 hover:text-gold transition-colors font-bold"
           >
             All <ArrowRight className="h-3.5 w-3.5 text-gold" />

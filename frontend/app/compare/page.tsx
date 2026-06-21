@@ -61,7 +61,7 @@ export default function CompareProducts() {
               No items selected to compare.
             </p>
             <Link
-              href="/shop"
+              href="/collections"
               className="mt-4 inline-block bg-foreground text-background px-6 py-3 text-xs uppercase tracking-widest hover:bg-gold hover:text-gold-foreground transition-colors"
             >
               Browse shop

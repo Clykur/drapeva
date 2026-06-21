@@ -40,7 +40,7 @@ function StatCard({
           <p className="font-display text-2xl mt-3">{value}</p>
           <p className="text-[10px] text-muted-foreground mt-1.5">{sub}</p>
         </div>
-        <div className={`h-9 w-9 rounded bg-${color}/10 grid place-items-center`}>
+        <div className={`h-9 w-9 bg-${color}/10 grid place-items-center`}>
           <Icon className={`h-4 w-4 text-${color}`} />
         </div>
       </div>
@@ -59,7 +59,7 @@ export default function AdminDashboard() {
     return (
       <AdminLayout title="Dashboard" subtitle="Store overview and analytics">
         <div className="flex items-center justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+          <div className="h-8 w-8 animate-spin border-2 border-gold border-t-transparent" />
         </div>
       </AdminLayout>
     );
@@ -104,16 +104,16 @@ export default function AdminDashboard() {
 
         {/* Alerts */}
         {(stats.lowStockProducts > 0 || stats.outOfStock > 0) && (
-          <div className="flex items-center gap-3 border border-amber-200 bg-amber-50 px-5 py-4 rounded text-sm">
+          <div className="flex items-center gap-3 border border-amber-200 bg-amber-50 px-5 py-4 text-sm">
             <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
             <span className="text-amber-800">
               {stats.outOfStock > 0 && <strong>{stats.outOfStock} products out of stock. </strong>}
               {stats.lowStockProducts > 0 && (
                 <>{stats.lowStockProducts} products with low stock (≤5 units).</>
               )}{" "}
-              <a href="/admin/inventory" className="underline font-medium">
+              <Link href="/admin/inventory" className="underline font-medium">
                 Manage inventory →
-              </a>
+              </Link>
             </span>
           </div>
         )}
@@ -216,17 +216,19 @@ export default function AdminDashboard() {
               icon: DollarSign,
             },
           ].map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
-              className="group border border-border p-5 hover:border-gold hover:bg-gold/5 transition-all"
+              className="group border border-border bg-background p-5 hover:bg-champagne/10 hover:border-gold/30 transition-all flex flex-col items-center justify-center text-center h-full"
             >
-              <item.icon className="h-5 w-5 text-gold mb-3" />
-              <p className="font-semibold text-sm group-hover:text-gold transition-colors">
+              <div className="mb-4 flex items-center justify-center h-12 w-12 bg-gold/10 text-gold shrink-0 group-hover:scale-110 transition-transform">
+                <item.icon className="h-6 w-6" strokeWidth={1.5} />
+              </div>
+              <p className="font-medium text-base text-foreground group-hover:text-gold transition-colors">
                 {item.label}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-            </a>
+              <p className="text-xs text-muted-foreground mt-2">{item.desc}</p>
+            </Link>
           ))}
         </div>
       </div>

@@ -224,7 +224,7 @@ export default function AdminHomepage() {
                   value={form.cta_link}
                   onChange={(e) => setField("cta_link", e.target.value)}
                   className={inp}
-                  placeholder="/shop"
+                  placeholder="/collections"
                 />
               </label>
             </div>

@@ -51,15 +51,27 @@ export default function Security() {
 
   return (
     <DashboardLayout title="Security" subtitle="Account Security">
-      <div className="space-y-8 max-w-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 auto-rows-fr">
         {/* Change Password */}
-        <section className="border border-border p-6 space-y-5">
-          <div className="flex items-center gap-3 border-b border-border pb-4">
-            <Key className="h-5 w-5 text-gold" />
-            <h2 className="font-display text-lg">Change Password</h2>
+        <form
+          onSubmit={handlePasswordChange}
+          className="border border-border p-6 h-full flex flex-col"
+        >
+          <div className="flex items-center justify-between border-b border-border pb-4 mb-5">
+            <div className="flex items-center gap-3">
+              <Key className="h-5 w-5 text-gold" />
+              <h2 className="font-display text-lg">Change Password</h2>
+            </div>
+            <button
+              type="submit"
+              disabled={pwdLoading}
+              className="bg-foreground text-background px-4 py-2 text-xs uppercase tracking-widest font-medium hover:bg-gold hover:text-gold-foreground transition-colors disabled:opacity-50"
+            >
+              {pwdLoading ? "Updating..." : "Update Password"}
+            </button>
           </div>
 
-          <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div className="space-y-4 flex-1">
             <label className="block">
               <span className="eyebrow mb-1 block">New Password</span>
               <input
@@ -91,31 +103,17 @@ export default function Security() {
                 <p className="text-[10px] text-red-500 mt-1">Passwords do not match</p>
               )}
             </label>
-
-            <p className="text-xs text-muted-foreground">
-              Note: Supabase will require you to be logged in with a valid session to change your
-              password. If you signed up with a magic link or OTP, please use the "Forgot Password"
-              flow.
-            </p>
-
-            <button
-              type="submit"
-              disabled={pwdLoading}
-              className="bg-foreground text-background px-6 py-3 text-xs uppercase tracking-widest font-medium hover:bg-gold hover:text-gold-foreground transition-colors disabled:opacity-50"
-            >
-              {pwdLoading ? "Updating..." : "Update Password"}
-            </button>
-          </form>
-        </section>
+          </div>
+        </form>
 
         {/* Account Info */}
-        <section className="border border-border p-6 space-y-4">
-          <div className="flex items-center gap-3 border-b border-border pb-4">
+        <section className="border border-border p-6 h-full flex flex-col">
+          <div className="flex items-center gap-3 border-b border-border pb-4 mb-4">
             <Shield className="h-5 w-5 text-gold" />
             <h2 className="font-display text-lg">Account Information</h2>
           </div>
 
-          <div className="space-y-3 text-sm">
+          <div className="space-y-3 text-sm flex-1">
             <div className="flex justify-between items-center py-2 border-b border-border/50">
               <span className="text-muted-foreground">Email</span>
               <span className="font-medium">{user?.email}</span>
@@ -139,7 +137,7 @@ export default function Security() {
         </section>
 
         {/* Sign Out All Devices */}
-        <section className="border border-border p-6">
+        <section className="border border-border p-6 h-full flex flex-col">
           <div className="flex items-center gap-3 border-b border-border pb-4 mb-4">
             <LogOut className="h-5 w-5 text-muted-foreground" />
             <h2 className="font-display text-lg">Sessions</h2>
@@ -147,19 +145,21 @@ export default function Security() {
           <p className="text-sm text-muted-foreground mb-4">
             Sign out from all devices and sessions.
           </p>
-          <button
-            onClick={async () => {
-              await logout();
-              router.push("/login");
-            }}
-            className="border border-border px-5 py-3 text-xs uppercase tracking-widest text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
-          >
-            Sign Out of All Devices
-          </button>
+          <div className="mt-auto">
+            <button
+              onClick={async () => {
+                await logout();
+                router.push("/login");
+              }}
+              className="w-full border border-border px-5 py-3 text-xs uppercase tracking-widest text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+            >
+              Sign Out of All Devices
+            </button>
+          </div>
         </section>
 
         {/* Danger Zone */}
-        <section className="border border-red-200 p-6">
+        <section className="border border-red-200 p-6 h-full flex flex-col">
           <div className="flex items-center gap-3 border-b border-red-200 pb-4 mb-4">
             <AlertTriangle className="h-5 w-5 text-red-500" />
             <h2 className="font-display text-lg text-red-700">Danger Zone</h2>
@@ -167,12 +167,14 @@ export default function Security() {
           <p className="text-sm text-muted-foreground mb-4">
             Permanently delete your account and all associated data. This action cannot be undone.
           </p>
-          <button
-            onClick={handleDeleteAccount}
-            className="border border-red-300 bg-red-50 text-red-700 px-5 py-3 text-xs uppercase tracking-widest hover:bg-red-100 transition-colors"
-          >
-            Delete My Account
-          </button>
+          <div className="mt-auto">
+            <button
+              onClick={handleDeleteAccount}
+              className="w-full border border-red-300 bg-red-50 text-red-700 px-5 py-3 text-xs uppercase tracking-widest hover:bg-red-100 transition-colors"
+            >
+              Delete My Account
+            </button>
+          </div>
         </section>
       </div>
     </DashboardLayout>

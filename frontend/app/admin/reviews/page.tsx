@@ -126,12 +126,12 @@ export default function AdminReviews() {
                       {(r as any).product && (
                         <span>
                           on{" "}
-                          <a
+                          <Link
                             href={`/product/${(r as any).product.slug}`}
                             className="text-gold hover:underline"
                           >
                             {(r as any).product.name}
-                          </a>
+                          </Link>
                         </span>
                       )}
                       <span>{new Date(r.created_at).toLocaleDateString("en-IN")}</span>

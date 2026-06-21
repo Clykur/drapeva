@@ -3,23 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  Heart,
-  Search,
-  ShoppingBag,
-  User,
-  Menu,
-  X,
-  Bell,
-  LogOut,
-  Package,
-  MapPin,
-  Shield,
-  LayoutDashboard,
-  HelpCircle,
-  ShoppingCart,
-  Clock,
-} from "lucide-react";
+import { Heart, Search, ShoppingBag, User, Menu, X, Bell } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useShop, cartCount } from "@/lib/store";
 import { useAuth } from "@/lib/auth-store";
@@ -29,35 +13,58 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { formatINR } from "@/lib/types";
 
-const PROFILE_MENU = [
-  { to: "/account/profile", label: "My Account", icon: User },
-  { to: "/account/orders", label: "My Orders", icon: Package },
-  { to: "/account/wishlist", label: "Wishlist", icon: Heart },
-  { to: "/account/addresses", label: "Saved Addresses", icon: MapPin },
-  { to: "/account/recently-viewed", label: "Recently Viewed", icon: Clock },
-  { to: "/account/notifications", label: "Notifications", icon: Bell },
-  { to: "/account/support", label: "Support", icon: HelpCircle },
-];
-
 export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [activeHash, setActiveHash] = useState("");
+
+  useEffect(() => {
+    // Update hash on mount and hashchange
+    setActiveHash(window.location.hash);
+    const handleHashChange = () => setActiveHash(window.location.hash);
+    window.addEventListener("hashchange", handleHashChange);
+
+    // Intersection observer for section-wise active state
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveHash(`#${entry.target.id}`);
+          }
+        });
+      },
+      { rootMargin: "-20% 0px -60% 0px" },
+    );
+
+    const sections = document.querySelectorAll("section[id]");
+    sections.forEach((section) => observer.observe(section));
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+      sections.forEach((section) => observer.unobserve(section));
+    };
+  }, [pathname]);
+
   const isActive = (to: string) => {
-    if (to === "/") {
-      return pathname === "/";
+    if (to.includes("#")) {
+      const hash = to.substring(to.indexOf("#"));
+      // if on homepage and hash matches, or we're strictly matching the to path
+      if (pathname === "/") return activeHash === hash;
+      return pathname + activeHash === to;
     }
-    if (to === "/collections") {
+    if (to === "/") return pathname === "/";
+    if (to === "/collections")
       return (
         pathname === "/collections" ||
-        (pathname === "/shop" && searchParams.get("collection") !== null)
+        (pathname === "/collections" && searchParams.get("collection") !== null)
       );
-    }
-    if (to === "/shop") {
-      const isCollectionFilter = pathname === "/shop" && searchParams.get("collection") !== null;
-      return (pathname === "/shop" && !isCollectionFilter) || pathname.startsWith("/product");
-    }
+    if (to === "/collections")
+      return (
+        (pathname === "/collections" && searchParams.get("collection") === null) ||
+        pathname.startsWith("/product")
+      );
     return pathname === to || pathname.startsWith(to + "/");
   };
   const queryClient = useQueryClient();
@@ -66,10 +73,6 @@ export function SiteHeader() {
   const [heroVisible, setHeroVisible] = useState(isHeroPath);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-
-  // Ref for click-outside detection on the profile dropdown
-  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const cart = useShop((s) => s.cart);
   const wishlist = useShop((s) => s.wishlist);
@@ -81,25 +84,32 @@ export function SiteHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const leftNavItems = user
-    ? [
-        { to: "/dashboard" as const, label: "My Dashboard" },
-        { to: "/shop" as const, label: "Shop" },
-        { to: "/new-arrivals" as const, label: "New Arrivals" },
-        { to: "/trending" as const, label: "Trending" },
-      ]
-    : [
-        { to: "/" as const, label: "Home" },
-        { to: "/new-arrivals" as const, label: "New Arrivals" },
-        { to: "/bestsellers" as const, label: "Best Sellers" },
-        { to: "/collections" as const, label: "Collections" },
-      ];
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
+    setOpen(false);
+    if (to.startsWith("/#") && pathname === "/") {
+      e.preventDefault();
+      const id = to.replace("/#", "");
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+        window.history.pushState(null, "", to);
+        setActiveHash(`#${id}`);
+      }
+    }
+  };
+
+  const leftNavItems = [
+    { to: "/#home" as const, label: "Home" },
+    { to: "/#new-arrivals" as const, label: "New Arrivals" },
+    { to: "/#bestsellers" as const, label: "Best Sellers" },
+    { to: "/collections" as const, label: "Collections" },
+  ];
 
   const rightNavItems = user
     ? []
     : [
-        { to: "/about" as const, label: "About Us" },
-        { to: "/support" as const, label: "Contact Us" },
+        { to: "/about" as const, label: "About" },
+        { to: "/support" as const, label: "Contact" },
       ];
 
   const allNavItems = [...leftNavItems, ...rightNavItems];
@@ -119,36 +129,6 @@ export function SiteHeader() {
     enabled: !!user,
     refetchInterval: 30000,
   });
-
-  // Close dropdown when navigating to a new page
-  useEffect(() => {
-    setProfileDropdownOpen(false);
-  }, [pathname]);
-
-  // Click-outside and Escape key handler for profile dropdown
-  useEffect(() => {
-    if (!profileDropdownOpen) return;
-
-    const handleMouseDown = (e: MouseEvent) => {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
-        setProfileDropdownOpen(false);
-      }
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setProfileDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleMouseDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [profileDropdownOpen]);
 
   // Real-time notifications and order status updates subscription
   useEffect(() => {
@@ -232,72 +212,53 @@ export function SiteHeader() {
   const isHidden = hasHero && heroVisible;
   const isFloating = hasHero ? !heroVisible : scrolled;
 
-  const handleProfileMenuClick = () => {
-    setProfileDropdownOpen(false);
-  };
-
-  const handleLogout = async () => {
-    setProfileDropdownOpen(false);
-    await authLogout();
-    toast.success("Signed out successfully");
-    router.push("/");
-  };
+  // Hide header completely in admin portal
+  if (pathname && /^\/admin(\/.*)?$/.test(pathname)) {
+    return null;
+  }
 
   return (
     <>
-      <div className="bg-ink text-background overflow-hidden h-9 flex items-center">
-        <div className="flex animate-marquee whitespace-nowrap text-[0.7rem] tracking-[0.32em] uppercase">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="flex shrink-0 gap-12 px-6">
-              <span>Shipping across India</span>
-              <span className="text-gold">◆</span>
-              <span>Contact us in Instagram &amp; Whatsapp</span>
-              <span className="text-gold">◆</span>
-              <span>New arrivals every Week</span>
-              <span className="text-gold">◆</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Spacer to push content down when the header is fixed and we don't have a hero section */}
-      {!hasHero && <div className="h-[72px] md:h-[88px]" />}
-
       <header
-        className={`fixed left-0 right-0 mx-auto z-40 transition-navbar ${
-          isFloating
-            ? "top-4 w-[92vw] md:w-[88vw] max-w-6xl rounded-2xl md:rounded-full border border-border/80 bg-background/85 backdrop-blur-xl shadow-lg"
-            : "top-9 w-full max-w-none border border-transparent border-b-border bg-background"
-        } ${
-          isHidden ? "opacity-0 -translate-y-full pointer-events-none" : "opacity-100 translate-y-0"
+        className={`sticky top-0 z-40 transition-all duration-700 ease-in-out translate-y-0 opacity-100 ${
+          scrolled
+            ? "bg-background/90 backdrop-blur-xl border-b border-border shadow-sm"
+            : "bg-background border-b border-transparent"
         }`}
       >
         <div
-          className={`flex items-center justify-between transition-navbar ${
-            isFloating ? "w-full py-3 px-8" : "container-luxe py-4 md:py-5"
-          }`}
+          className={`flex items-center justify-between container-luxe transition-all duration-700 ${scrolled ? "py-1" : "py-2"}`}
         >
           {/* Column 1: Left Menu & Mobile Hamburger */}
-          <div className="flex items-center gap-4">
-            <button className="lg:hidden -ml-2 p-2" aria-label="Menu" onClick={() => setOpen(true)}>
-              <Menu className="h-5 w-5" />
+          <div className="flex flex-1 items-center gap-6">
+            <button
+              className="lg:hidden -ml-2 p-2 hover:opacity-70 transition-opacity"
+              aria-label="Menu"
+              onClick={() => setOpen(true)}
+            >
+              <Menu className="h-[22px] w-[22px]" strokeWidth={1.2} />
             </button>
 
-            <nav className="hidden lg:flex items-center gap-5 text-[11px] uppercase tracking-widest font-semibold">
+            <nav className="hidden lg:flex items-center gap-8 text-[10px] uppercase tracking-[0.2em] font-medium">
               {leftNavItems.map((n) => {
                 const active = isActive(n.to);
                 return (
                   <Link
                     key={n.label}
                     href={n.to}
+                    onClick={(e) => handleNavClick(e, n.to)}
                     className={cn(
-                      "relative transition-colors after:absolute after:left-0 after:-bottom-1 after:h-px after:bg-gold after:transition-all",
-                      active
-                        ? "text-gold font-bold after:w-full"
-                        : "text-foreground/80 hover:text-foreground after:w-0 hover:after:w-full",
+                      "group relative py-2 transition-colors",
+                      active ? "text-foreground" : "text-foreground/60 hover:text-foreground",
                     )}
                   >
                     {n.label}
+                    <span
+                      className={cn(
+                        "absolute bottom-0 left-0 h-[1px] bg-foreground transition-all duration-500 ease-out",
+                        active ? "w-full" : "w-0 group-hover:w-full",
+                      )}
+                    />
                   </Link>
                 );
               })}
@@ -306,62 +267,64 @@ export function SiteHeader() {
 
           {/* Column 2: Center Brand */}
           <Link
-            href={user ? "/dashboard" : "/"}
-            className="justify-self-center flex flex-col items-center select-none"
+            href="/"
+            className="flex-1 flex justify-center items-center select-none"
             aria-label="Drapeva home"
           >
-            <span
-              className="text-3xl md:text-4xl uppercase tracking-[0.22em]"
-              style={{ fontFamily: "'Cormorant Garamond', serif" }}
-            >
+            <span className="text-2xl md:text-[26px] uppercase tracking-[0.3em] font-limelight font-light transition-transform duration-700 hover:scale-105">
               Drapeva
             </span>
           </Link>
 
           {/* Column 3: Right Menu + Icons */}
-          <div className="flex items-center gap-4 justify-self-end">
+          <div className="flex flex-1 items-center justify-end gap-6">
             {rightNavItems.length > 0 && (
-              <nav className="hidden lg:flex items-center gap-5 text-[11px] uppercase tracking-widest font-semibold mr-2">
+              <nav className="hidden lg:flex items-center gap-8 text-[10px] uppercase tracking-[0.2em] font-medium mr-2">
                 {rightNavItems.map((n) => {
                   const active = isActive(n.to);
                   return (
                     <Link
                       key={n.label}
                       href={n.to}
+                      onClick={(e) => handleNavClick(e, n.to)}
                       className={cn(
-                        "relative transition-colors after:absolute after:left-0 after:-bottom-1 after:h-px after:bg-gold after:transition-all",
-                        active
-                          ? "text-gold font-bold after:w-full"
-                          : "text-foreground/80 hover:text-foreground after:w-0 hover:after:w-full",
+                        "group relative py-2 transition-colors",
+                        active ? "text-foreground" : "text-foreground/60 hover:text-foreground",
                       )}
                     >
                       {n.label}
+                      <span
+                        className={cn(
+                          "absolute bottom-0 left-0 h-[1px] bg-foreground transition-all duration-500 ease-out",
+                          active ? "w-full" : "w-0 group-hover:w-full",
+                        )}
+                      />
                     </Link>
                   );
                 })}
               </nav>
             )}
 
-            <div className="flex items-center gap-1 md:gap-2">
+            <div className="flex items-center gap-3">
               {/* Search */}
               <button
                 onClick={() => setSearchOpen((prev) => !prev)}
-                className="p-2 hover:text-gold transition-colors"
+                className="p-2 hover:opacity-60 transition-opacity"
                 aria-label="Search"
               >
-                <Search className="h-[18px] w-[18px]" />
+                <Search className="h-5 w-5" strokeWidth={1.2} />
               </button>
 
               {/* Wishlist */}
               {user && (
                 <Link
                   href="/account/wishlist"
-                  className="relative p-2 hover:text-gold transition-colors"
+                  className="relative p-2 hover:opacity-60 transition-opacity"
                   aria-label="Wishlist"
                 >
-                  <Heart className="h-[18px] w-[18px]" />
+                  <Heart className="h-5 w-5" strokeWidth={1.2} />
                   {wishlist.length > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-medium text-gold-foreground">
+                    <span className="absolute right-0 top-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-foreground text-[8px] font-bold text-background">
                       {wishlist.length}
                     </span>
                   )}
@@ -371,12 +334,12 @@ export function SiteHeader() {
               {/* Cart */}
               <button
                 onClick={openCart}
-                className="relative p-2 hover:text-gold transition-colors"
+                className="relative p-2 hover:opacity-60 transition-opacity"
                 aria-label="Cart"
               >
-                <ShoppingBag className="h-[18px] w-[18px]" />
+                <ShoppingBag className="h-5 w-5" strokeWidth={1.2} />
                 {count > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-medium text-gold-foreground">
+                  <span className="absolute right-0 top-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-foreground text-[8px] font-bold text-background">
                     {count}
                   </span>
                 )}
@@ -386,12 +349,12 @@ export function SiteHeader() {
               {user && (
                 <Link
                   href="/account/notifications"
-                  className="relative p-2 hover:text-gold transition-colors"
+                  className="relative p-2 hover:opacity-60 transition-opacity"
                   aria-label="Notifications"
                 >
-                  <Bell className="h-[18px] w-[18px]" />
+                  <Bell className="h-5 w-5" strokeWidth={1.2} />
                   {unreadCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-gold text-[10px] font-medium text-gold-foreground animate-pulse">
+                    <span className="absolute right-0 top-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-foreground text-[8px] font-bold text-background animate-pulse">
                       {unreadCount}
                     </span>
                   )}
@@ -399,91 +362,16 @@ export function SiteHeader() {
               )}
 
               {user ? (
-                /* Profile Dropdown Menu — desktop only; mobile uses the hamburger drawer */
-                <div ref={profileDropdownRef} className="relative hidden lg:block">
-                  <button
-                    id="profile-menu-button"
-                    onClick={() => setProfileDropdownOpen((prev) => !prev)}
-                    className="h-8 w-8 rounded-full bg-gradient-to-br from-gold/20 to-gold/40 text-gold grid place-items-center text-xs font-semibold ring-2 ring-gold/20 hover:scale-105 transition-transform"
-                    aria-label="User Profile Menu"
-                    aria-haspopup="true"
-                    aria-expanded={profileDropdownOpen}
-                    aria-controls="profile-dropdown"
+                <div className="relative hidden lg:block ml-2">
+                  <Link
+                    href="/account"
+                    className="flex items-center gap-2 h-9 px-4 rounded-full border border-border/40 hover:border-gold/40 hover:bg-champagne/10 transition-all text-[11px] font-semibold uppercase tracking-widest text-foreground/80 hover:text-gold"
                   >
-                    {(user.name || user.email).charAt(0).toUpperCase()}
-                  </button>
-
-                  {profileDropdownOpen && (
-                    <div
-                      id="profile-dropdown"
-                      role="menu"
-                      aria-labelledby="profile-menu-button"
-                      className="absolute right-0 mt-2 w-64 bg-background border border-border shadow-lg rounded-md py-2 z-50 animate-rise"
-                    >
-                      {/* User info header */}
-                      <div className="px-4 py-3 border-b border-border">
-                        <p className="font-semibold text-sm truncate">
-                          {user.name || user.email.split("@")[0]}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        <p className="text-[9px] uppercase tracking-wider text-gold mt-1 capitalize font-medium">
-                          {user.role} account
-                        </p>
-                      </div>
-
-                      {/* Menu items */}
-                      <div className="py-1" role="none">
-                        {user.role === "admin" && (
-                          <Link
-                            href="/admin/dashboard"
-                            role="menuitem"
-                            onClick={handleProfileMenuClick}
-                            className={cn(
-                              "flex items-center gap-3 px-4 py-2.5 text-xs uppercase tracking-widest font-semibold transition-colors border-b border-border",
-                              isActive("/admin")
-                                ? "bg-gold/10 text-gold font-bold"
-                                : "text-foreground hover:bg-champagne/45 hover:text-gold",
-                            )}
-                          >
-                            <LayoutDashboard className="h-4 w-4 text-gold/80 shrink-0" />
-                            Admin Dashboard
-                          </Link>
-                        )}
-                        {PROFILE_MENU.map(({ to, label, icon: Icon }) => {
-                          const active = isActive(to);
-                          return (
-                            <Link
-                              key={to}
-                              href={to}
-                              role="menuitem"
-                              onClick={handleProfileMenuClick}
-                              className={cn(
-                                "flex items-center gap-3 px-4 py-2.5 text-xs uppercase tracking-widest font-semibold transition-colors",
-                                active
-                                  ? "bg-gold/10 text-gold font-bold"
-                                  : "text-foreground hover:bg-champagne/45 hover:text-gold",
-                              )}
-                            >
-                              <Icon className="h-4 w-4 text-gold/80 shrink-0" />
-                              {label}
-                            </Link>
-                          );
-                        })}
-                      </div>
-
-                      {/* Logout */}
-                      <div className="border-t border-border pt-1 mt-1" role="none">
-                        <button
-                          role="menuitem"
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-xs uppercase tracking-widest font-medium text-destructive hover:bg-destructive/5 transition-colors text-left"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          Sign Out
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                    <User className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    <span className="truncate max-w-[140px]">
+                      {user.name || user.email?.split("@")[0]}
+                    </span>
+                  </Link>
                 </div>
               ) : (
                 /* Login / Register Link Button */
@@ -507,7 +395,7 @@ export function SiteHeader() {
               {/* Mobile Profile Trigger */}
               {user && (
                 <Link
-                  href="/dashboard"
+                  href="/account"
                   className="lg:hidden h-7 w-7 rounded-full bg-gradient-to-br from-gold/20 to-gold/40 text-gold grid place-items-center text-xs font-semibold ring-2 ring-gold/20 hover:scale-105 transition-transform"
                   aria-label="Account Dashboard"
                 >
@@ -558,13 +446,16 @@ export function SiteHeader() {
                     <p className="eyebrow text-muted-foreground mb-3">Popular Searches</p>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { label: "Silk Sarees", href: "/shop?fabric=Silk" },
-                        { label: "Kanjivaram Sarees", href: "/shop?fabric=Kanjivaram" },
-                        { label: "Banarasi", href: "/shop?fabric=Banarasi" },
-                        { label: "Organza Sarees", href: "/shop?fabric=Organza" },
-                        { label: "Cotton Sarees", href: "/shop?fabric=Cotton" },
-                        { label: "Bridal Sarees", href: "/shop?category=bridal-sarees" },
-                        { label: "Wedding Collection", href: "/shop?collection=vivah-couture" },
+                        { label: "Silk Sarees", href: "/collections?fabric=Silk" },
+                        { label: "Kanjivaram Sarees", href: "/collections?fabric=Kanjivaram" },
+                        { label: "Banarasi", href: "/collections?fabric=Banarasi" },
+                        { label: "Organza Sarees", href: "/collections?fabric=Organza" },
+                        { label: "Cotton Sarees", href: "/collections?fabric=Cotton" },
+                        { label: "Bridal Sarees", href: "/collections?category=bridal-sarees" },
+                        {
+                          label: "Wedding Collection",
+                          href: "/collections?collection=vivah-couture",
+                        },
                       ].map((item) => (
                         <Link
                           key={item.label}
@@ -656,17 +547,12 @@ export function SiteHeader() {
           <div className="absolute inset-y-0 left-0 w-[82%] max-w-sm bg-background p-6 animate-rise">
             <div className="flex items-center justify-between">
               <Link
-                href={user ? "/dashboard" : "/"}
+                href="/"
                 onClick={() => setOpen(false)}
                 aria-label="Drapeva home"
                 className="flex items-center"
               >
-                <span
-                  className="text-3xl font-serif tracking-[0.2em] uppercase"
-                  style={{ fontFamily: "'Cormorant Garamond', serif" }}
-                >
-                  Drapeva
-                </span>
+                <span className="text-3xl font-limelight tracking-[0.2em] uppercase">Drapeva</span>
               </Link>
               <button onClick={() => setOpen(false)} aria-label="Close" className="p-2">
                 <X className="h-5 w-5" />
@@ -679,7 +565,7 @@ export function SiteHeader() {
                   <Link
                     key={n.label}
                     href={n.to}
-                    onClick={() => setOpen(false)}
+                    onClick={(e) => handleNavClick(e, n.to)}
                     className={cn(
                       "border-b border-border/60 py-3 font-display text-xl transition-all duration-300",
                       active

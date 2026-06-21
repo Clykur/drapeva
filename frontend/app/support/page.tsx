@@ -35,7 +35,7 @@ const FAQS = [
 
 export default function SupportCenter() {
   const user = useAuth((s) => s.user);
-  const [activeTab, setActiveTab] = useState<"faq" | "contact" | "policy">("faq");
+  const [activeTab, setActiveTab] = useState<"faq" | "contact" | "policy">("contact");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
@@ -71,163 +71,115 @@ export default function SupportCenter() {
   return (
     <div>
       <div className="border-b border-border bg-champagne/30">
-        <div className="container-luxe py-14 md:py-20 text-center">
-          <p className="eyebrow">Customer Care</p>
-          <h1 className="mt-3 font-display text-4xl md:text-6xl">Support Hub</h1>
+        <div className="container-luxe py-4 md:py-6 text-center">
+          <h1 className="mt-3 font-display text-4xl md:text-6xl">Contact & Support</h1>
           <span className="gold-divider mt-4 block mx-auto" />
-
-          <nav className="mt-8 flex flex-wrap justify-center gap-6 text-xs uppercase tracking-[0.2em] font-semibold">
-            <button
-              onClick={() => setActiveTab("faq")}
-              className={`pb-1 border-b transition-colors cursor-pointer ${
-                activeTab === "faq"
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              FAQs
-            </button>
-            <button
-              onClick={() => setActiveTab("contact")}
-              className={`pb-1 border-b transition-colors cursor-pointer ${
-                activeTab === "contact"
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Contact Us
-            </button>
-            <button
-              onClick={() => setActiveTab("policy")}
-              className={`pb-1 border-b transition-colors cursor-pointer ${
-                activeTab === "policy"
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Atelier Policies
-            </button>
-          </nav>
         </div>
       </div>
 
-      <div className="container-luxe py-16 max-w-3xl">
-        {/* FAQs */}
-        {activeTab === "faq" && (
-          <div className="space-y-4 divide-y divide-border">
-            {FAQS.map((faq, index) => (
-              <div key={index} className="py-4 first:pt-0">
-                <button
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="flex w-full justify-between items-center text-left font-display text-lg py-2 cursor-pointer group hover:text-gold transition-colors border-none bg-transparent focus:outline-none"
-                >
-                  <span>{faq.q}</span>
-                  <ChevronDown
-                    className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${
-                      openFaq === index ? "rotate-180 text-gold" : ""
-                    }`}
-                  />
-                </button>
-                {openFaq === index && (
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground animate-rise">
-                    {faq.a}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="container-luxe py-16">
+        {/* Contact Form & Info */}
+        <div className="grid md:grid-cols-[1fr_2fr] gap-12">
+          <div className="space-y-8">
+            <div>
+              <h3 className="font-display text-2xl mb-4">Get in Touch</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Have questions about our collections, sizing, or a recent order? Our concierge team
+                is here to assist you.
+              </p>
+            </div>
 
-        {/* Contact Form */}
-        {activeTab === "contact" && (
+            <div className="space-y-4 text-sm">
+              <div>
+                <p className="eyebrow mb-1">Email</p>
+                <p className="text-foreground">hello@drapeva.com</p>
+              </div>
+              <div>
+                <p className="eyebrow mb-1">Phone</p>
+                <p className="text-foreground">+91 98765 43210</p>
+                <p className="text-muted-foreground mt-1">Mon - Sat, 10am to 7pm IST</p>
+              </div>
+              <div>
+                <p className="eyebrow mb-1">Studio</p>
+                <p className="text-foreground leading-relaxed">
+                  Drapeva Silks
+                  <br />
+                  100 Feet Road, Indiranagar
+                  <br />
+                  Bangalore - 560038
+                </p>
+              </div>
+            </div>
+          </div>
+
           <form
             onSubmit={handleContactSubmit}
             className="space-y-5 border border-border p-6 bg-champagne/10 md:p-8"
           >
             <h2 className="font-display text-2xl mb-4">Submit Query</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="eyebrow mb-2 block">Name</span>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <label className="block group">
+                <span className="eyebrow mb-2 block transition-colors group-focus-within:text-foreground">
+                  Name
+                </span>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none"
+                  className="w-full border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:border-foreground transition-colors"
                 />
               </label>
-              <label className="block">
-                <span className="eyebrow mb-2 block">Email</span>
+              <label className="block group">
+                <span className="eyebrow mb-2 block transition-colors group-focus-within:text-foreground">
+                  Email
+                </span>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none"
+                  className="w-full border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:border-foreground transition-colors"
                 />
               </label>
             </div>
-            <label className="block">
-              <span className="eyebrow mb-2 block">Subject</span>
+            <label className="block group">
+              <span className="eyebrow mb-2 block transition-colors group-focus-within:text-foreground">
+                Subject
+              </span>
               <input
                 type="text"
                 required
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none"
+                className="w-full border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:border-foreground transition-colors"
                 placeholder="e.g. Blouse fitting request"
               />
             </label>
-            <label className="block">
-              <span className="eyebrow mb-2 block">Message Details</span>
+            <label className="block group">
+              <span className="eyebrow mb-2 block transition-colors group-focus-within:text-foreground">
+                Message Details
+              </span>
               <textarea
                 required
                 rows={5}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="w-full border border-border bg-background px-4 py-2.5 text-sm focus:outline-none"
+                className="w-full border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:border-foreground transition-colors resize-y"
                 placeholder="Write details here..."
               />
             </label>
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex items-center gap-2 bg-foreground text-background px-6 py-4 text-xs font-semibold uppercase tracking-widest transition-colors hover:bg-gold hover:text-gold-foreground disabled:opacity-50"
-            >
-              <Send className="h-4 w-4" /> {loading ? "Submitting..." : "Submit Inquiry"}
-            </button>
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex items-center gap-2 bg-foreground text-background px-8 py-4 text-xs font-semibold uppercase tracking-[0.15em] transition-all hover:bg-gold hover:text-gold-foreground disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" /> {loading ? "Submitting..." : "Submit Inquiry"}
+              </button>
+            </div>
           </form>
-        )}
-
-        {/* Policies */}
-        {activeTab === "policy" && (
-          <div className="space-y-8 text-sm leading-relaxed text-muted-foreground">
-            <div>
-              <h2 className="font-display text-xl text-foreground mb-3">Shipping Policy</h2>
-              <p>
-                We provide shipping across India. Custom handloom or bridal drapes require 4 to 6
-                weeks. In-stock sarees ship in 3 to 5 business days. Once your item is dispatched,
-                you will receive tracking numbers via SMS and email.
-              </p>
-            </div>
-            <div>
-              <h2 className="font-display text-xl text-foreground mb-3">Returns & Refunds</h2>
-              <p>
-                Because custom items are crafted to your exact specifications, we do not issue
-                refunds or accept returns on made-to-order couture. If you receive an item that
-                deviates from your order details, we offer complimentary adjustments.
-              </p>
-            </div>
-            <div>
-              <h2 className="font-display text-xl text-foreground mb-3">Privacy & Terms</h2>
-              <p>
-                All client profiles, measurement files, and transaction details are encrypted. We
-                will never share your details with third-party logistics. By placing an order, you
-                agree to our standard terms of artisan craftsmanship and fitting timelines.
-              </p>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

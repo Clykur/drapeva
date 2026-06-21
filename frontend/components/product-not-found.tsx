@@ -47,7 +47,7 @@ export function ProductNotFound() {
           </p>
           <div className="pt-6 flex flex-wrap justify-center gap-4">
             <Link
-              href="/shop"
+              href="/collections"
               className="bg-foreground text-background px-6 py-3.5 text-xs font-semibold tracking-widest uppercase hover:bg-gold hover:text-gold-foreground transition-all duration-300 inline-flex items-center gap-2 group"
             >
               Continue Shopping
@@ -90,7 +90,7 @@ export function ProductNotFound() {
               <h2 className="font-display text-2xl md:text-3xl mt-1">Bestsellers</h2>
             </div>
             <Link
-              href="/shop"
+              href="/collections"
               className="text-xs uppercase tracking-widest text-muted-foreground hover:text-gold transition-colors"
             >
               View All
@@ -113,7 +113,7 @@ export function ProductNotFound() {
               <h2 className="font-display text-2xl md:text-3xl mt-1">New Arrivals</h2>
             </div>
             <Link
-              href="/shop"
+              href="/collections"
               className="text-xs uppercase tracking-widest text-muted-foreground hover:text-gold transition-colors"
             >
               View All
