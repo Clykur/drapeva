@@ -4,35 +4,53 @@ import Link from "next/link";
 import { useRouter, usePathname, useSearchParams, useParams } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { EDITORIAL_IMAGES } from "@/lib/media";
+import { useState, useEffect } from "react";
+
+const CAROUSEL_IMAGES = [
+  "/images/about-carousel/media__1781995905592.png",
+  "/images/about-carousel/media__1781995917159.png",
+  "/images/about-carousel/media__1781995927296.png",
+  "/images/about-carousel/media__1781995941751.png",
+];
 
 export default function AboutUs() {
+  const [bgIndex, setBgIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div>
       {/* Hero */}
       <div
         data-hero-section
-        className="relative h-[50svh] min-h-[350px] w-full bg-ink text-background flex items-center justify-center"
+        className="relative h-[50svh] min-h-[350px] w-full bg-ink text-background flex items-center justify-center overflow-hidden"
       >
-        <img
-          src={EDITORIAL_IMAGES.storyHero}
-          alt="Drapeva Saree Collection"
-          className="absolute inset-0 h-full w-full object-cover opacity-45"
-        />
+        {CAROUSEL_IMAGES.map((src, i) => (
+          <img
+            key={src}
+            src={src}
+            alt="Drapeva Saree Collection"
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${i === bgIndex ? "opacity-45" : "opacity-0"}`}
+          />
+        ))}
 
         <div className="absolute inset-0 bg-background/20" />
 
         <div className="relative text-center z-10 px-4">
-          <p className="eyebrow text-gold">About Drapeva</p>
+          <p className="eyebrow text-background">About Drapeva</p>
 
           <h1 className="mt-3 font-display text-4xl md:text-6xl text-background">
             Comfort in Every Drape
           </h1>
-
-          <span className="gold-divider mt-4 block mx-auto" />
         </div>
       </div>
 
-      <div className="container-luxe py-20 space-y-24">
+      <div className="container-luxe py-24 md:py-32 space-y-24 md:space-y-32">
         {/* Section 1 */}
         <div className="grid gap-12 md:grid-cols-2 items-center">
           <div className="space-y-4">
@@ -57,7 +75,7 @@ export default function AboutUs() {
             <img
               src={EDITORIAL_IMAGES.storyHero}
               alt="Drapeva Saree Collection"
-              className="w-full aspect-[4/3] object-cover border border-border"
+              className="w-full h-auto object-contain border border-border"
             />
           </div>
         </div>
@@ -85,7 +103,7 @@ export default function AboutUs() {
             <img
               src={EDITORIAL_IMAGES.celebDeepika}
               alt="Elegant Saree Collection"
-              className="w-full aspect-[4/3] object-cover border border-border"
+              className="w-full h-auto object-contain border border-border"
             />
           </div>
         </div>
@@ -105,12 +123,12 @@ export default function AboutUs() {
           </p>
 
           <p className="mt-6 text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            At Drapeva, our mission is simple — helping women find sarees they love wearing, for
+            At Drapeva, our mission is simple, helping women find sarees they love wearing, for
             every moment that matters.
           </p>
 
           <Link
-            href="/shop"
+            href="/collections"
             className="mt-8 inline-flex items-center gap-2 text-xs uppercase tracking-wider font-semibold border-b border-foreground pb-0.5"
           >
             Explore Collection

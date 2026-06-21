@@ -358,7 +358,7 @@ function CheckoutContent() {
         <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
         <h1 className="font-display text-3xl">Your cart is empty</h1>
         <Link
-          href="/shop"
+          href="/collections"
           className="mt-6 inline-block border-b border-foreground pb-1 eyebrow text-xs"
         >
           Continue shopping
@@ -482,7 +482,7 @@ function CheckoutContent() {
               Return to Atelier
             </Link>
             <Link
-              href="/shop"
+              href="/collections"
               className="flex-1 border border-border py-4 text-center text-xs uppercase tracking-[0.25em] font-medium hover:bg-muted transition-all"
             >
               Continue Shopping
@@ -499,7 +499,7 @@ function CheckoutContent() {
 
       <div className="mb-10">
         <Link
-          href="/shop"
+          href="/collections"
           className="inline-flex items-center gap-2 eyebrow text-muted-foreground hover:text-foreground transition-colors text-[10px]"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to shop

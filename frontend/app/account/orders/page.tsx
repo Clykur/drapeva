@@ -57,24 +57,22 @@ function OrderTracker({ status }: { status: string }) {
     );
   }
   return (
-    <div className="relative">
+    <div className="relative max-w-2xl pt-2">
       <div className="flex items-center justify-between gap-2">
         {STATUS_STEPS.map((step, i) => {
           const done = i <= current;
           const active = i === current;
           return (
-            <div key={step.key} className="flex flex-col items-center gap-1 flex-1">
+            <div key={step.key} className="flex flex-col items-center gap-2 flex-1 relative z-10">
               <div
-                className={`h-7 w-7 rounded-full border-2 grid place-items-center transition-all ${
-                  done
-                    ? "border-gold bg-gold text-gold-foreground"
-                    : "border-border bg-background text-muted-foreground"
-                } ${active ? "ring-2 ring-gold/30 ring-offset-1" : ""}`}
+                className={`h-8 w-8 rounded-full border-2 grid place-items-center transition-all bg-background ${
+                  done ? "border-gold text-gold" : "border-border text-muted-foreground/50"
+                } ${active ? "ring-4 ring-gold/10 ring-offset-0 bg-gold text-gold-foreground" : ""}`}
               >
-                <step.icon className="h-3 w-3" />
+                <step.icon className={`h-4 w-4 ${active && "text-gold-foreground"}`} />
               </div>
               <span
-                className={`text-[9px] uppercase tracking-wider text-center leading-tight ${done ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                className={`text-[10px] uppercase tracking-wider text-center leading-tight ${done ? "text-foreground font-medium" : "text-muted-foreground/50"}`}
               >
                 {step.label}
               </span>
@@ -83,10 +81,10 @@ function OrderTracker({ status }: { status: string }) {
         })}
       </div>
       {/* Connecting line */}
-      <div className="absolute top-3.5 left-[14px] right-[14px] h-0.5 bg-border -z-10">
+      <div className="absolute top-6 left-[12.5%] right-[12.5%] h-[2px] bg-border z-0">
         <div
           className="h-full bg-gold transition-all duration-700"
-          style={{ width: current < 0 ? "0%" : `${(current / (STATUS_STEPS.length - 1)) * 100}%` }}
+          style={{ width: current <= 0 ? "0%" : `${(current / (STATUS_STEPS.length - 1)) * 100}%` }}
         />
       </div>
     </div>
@@ -144,9 +142,8 @@ function OrderCard({
   });
 
   const handleDownloadInvoice = () => {
-    // Build a simple invoice text and trigger download
     const lines = [
-      `DRAPEVA — TAX INVOICE`,
+      `DRAPEVA : TAX INVOICE`,
       `Order: #${order.id.slice(0, 8).toUpperCase()}`,
       `Date: ${new Date(order.created_at).toLocaleDateString("en-IN")}`,
       `Customer: ${order.customer_name}`,
@@ -155,7 +152,7 @@ function OrderCard({
       `ITEMS:`,
       ...(order.items as any[]).map(
         (item: any) =>
-          `  ${item.product_name} (${item.size}) x${item.quantity} — ${formatINR(item.total)}`,
+          `  ${item.product_name} (${item.size}) x${item.quantity} : ${formatINR(item.total)}`,
       ),
       ``,
       `Subtotal: ${formatINR(order.subtotal)}`,
@@ -180,31 +177,32 @@ function OrderCard({
   const canCancel = ["pending", "processing"].includes(order.status);
 
   return (
-    <div className="border border-border bg-background hover:border-gold/30 transition-colors">
+    <div className="border border-border bg-background hover:border-gold/30 transition-colors shadow-sm">
       {/* Header */}
-      <div className="px-6 py-4 flex flex-wrap justify-between items-start gap-4">
+      <div className="px-6 py-4 flex flex-wrap justify-between items-center gap-4 bg-champagne/10 border-b border-border">
         <div>
           <div className="flex items-center gap-3">
-            <Package className="h-4 w-4 text-gold stroke-1" />
-            <span className="font-display text-base">
+            <span className="font-display text-lg font-medium text-ink">
               Order #{order.id.slice(0, 8).toUpperCase()}
             </span>
             <span
-              className={`border px-2 py-0.5 text-[10px] uppercase tracking-wider rounded ${STATUS_COLORS[order.status] || "bg-muted"}`}
+              className={`border px-2 py-0.5 text-[10px] uppercase tracking-wider rounded font-medium ${STATUS_COLORS[order.status] || "bg-muted"}`}
             >
               {order.status}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 ml-7">
-            Placed{" "}
-            {new Date(order.created_at).toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-            })}
-            {" · "}
-            {(order.items as any[])?.length} item(s)
-            {" · "}
+          <p className="text-xs text-muted-foreground mt-1.5 flex gap-2 items-center">
+            <span>
+              Placed{" "}
+              {new Date(order.created_at).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+            <span className="h-1 w-1 bg-border rounded-full" />
+            <span>{(order.items as any[])?.length} item(s)</span>
+            <span className="h-1 w-1 bg-border rounded-full" />
             <span className="font-medium text-foreground">{formatINR(order.total)}</span>
           </p>
         </div>
@@ -212,14 +210,14 @@ function OrderCard({
         <div className="flex items-center gap-2">
           <button
             onClick={handleReorder}
-            className="inline-flex items-center gap-1.5 border border-gold/40 bg-gold/5 text-gold px-3 py-1.5 text-[10px] uppercase tracking-widest hover:bg-gold/10 transition-colors"
+            className="inline-flex items-center gap-1.5 bg-foreground text-background px-4 py-2 text-[10px] uppercase tracking-widest font-medium hover:bg-gold hover:text-gold-foreground transition-colors"
           >
             <RefreshCw className="h-3 w-3" />
             Reorder
           </button>
           <button
             onClick={handleDownloadInvoice}
-            className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-[10px] uppercase tracking-widest hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-1.5 border border-border bg-background px-4 py-2 text-[10px] uppercase tracking-widest font-medium hover:bg-muted transition-colors"
           >
             <Download className="h-3 w-3" />
             Invoice
@@ -232,50 +230,87 @@ function OrderCard({
                 }
               }}
               disabled={cancelMut.isPending}
-              className="inline-flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-700 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:bg-red-100 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-[10px] uppercase tracking-widest font-medium hover:bg-red-100 transition-colors disabled:opacity-50"
             >
               <X className="h-3 w-3" />
               Cancel
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Main Body (Items Thumbnail + Tracker) */}
+      <div className="p-6 space-y-8">
+        {/* Thumbnails */}
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          {(order.items as any[]).map((item: any, i: number) => (
+            <div
+              key={i}
+              className="flex gap-3 items-center shrink-0 border border-border p-2 pr-6 bg-champagne/5 min-w-[200px]"
+            >
+              {item.product_image ? (
+                <img
+                  src={item.product_image}
+                  className="h-12 w-9 object-cover border border-border shrink-0"
+                  alt={item.product_name}
+                />
+              ) : (
+                <div className="h-12 w-9 bg-muted border border-border flex items-center justify-center shrink-0">
+                  <Package className="h-4 w-4 text-muted-foreground opacity-50" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-medium truncate">{item.product_name}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Qty: {item.quantity}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tracker */}
+        <div>
+          <OrderTracker status={order.status} />
+        </div>
+
+        {/* Details Toggle */}
+        <div className="flex justify-center border-t border-dashed border-border pt-4">
           <button
             onClick={onExpand}
-            className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-[10px] uppercase tracking-widest hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider font-medium"
           >
-            {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            {expanded ? "Hide" : "Details"}
+            {expanded ? "Hide Order Details" : "View Full Details"}
+            {expanded ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
           </button>
         </div>
       </div>
 
-      {/* Tracker */}
-      <div className="px-6 pb-4">
-        <OrderTracker status={order.status} />
-      </div>
-
       {/* Expanded Details */}
       {expanded && (
-        <div className="border-t border-border px-6 py-5 space-y-5 bg-champagne/5">
-          {/* Items */}
+        <div className="border-t border-border bg-champagne/5 p-6 grid gap-8 md:grid-cols-2">
+          {/* Items Detailed */}
           <div>
-            <p className="eyebrow text-[9px] mb-3">Items</p>
-            <div className="space-y-3">
+            <p className="eyebrow text-[10px] mb-4 text-gold">Order Items</p>
+            <div className="space-y-4">
               {(order.items as any[]).map((item: any, i: number) => (
                 <div key={i} className="flex gap-4 items-center">
                   {item.product_image && (
                     <img
                       src={item.product_image}
-                      className="h-14 w-10 object-cover border border-border shrink-0"
+                      className="h-16 w-12 object-cover border border-border shrink-0"
                       alt={item.product_name}
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.product_name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm font-medium leading-snug truncate">{item.product_name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       Size: {item.size} · Qty: {item.quantity}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold text-gold shrink-0">
+                  <p className="text-sm font-medium text-foreground shrink-0">
                     {formatINR(item.total)}
                   </p>
                 </div>
@@ -283,66 +318,65 @@ function OrderCard({
             </div>
           </div>
 
-          {/* Shipping address */}
-          {order.shipping_address && (
-            <div>
-              <p className="eyebrow text-[9px] mb-2">Delivery Address</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {(order.shipping_address as any).name}
-                <br />
-                {(order.shipping_address as any).line1}
-                {(order.shipping_address as any).line2 &&
-                  `, ${(order.shipping_address as any).line2}`}
-                <br />
-                {(order.shipping_address as any).city}, {(order.shipping_address as any).state} —{" "}
-                {(order.shipping_address as any).postal_code}
-              </p>
-            </div>
-          )}
-
-          {/* Tracking */}
-          {order.tracking_number && (
-            <div>
-              <p className="eyebrow text-[9px] mb-2">Tracking Number</p>
-              <code className="text-sm font-mono bg-champagne/30 px-3 py-1.5 border border-border">
-                {order.tracking_number}
-              </code>
-            </div>
-          )}
-
-          {/* Totals */}
-          <div className="border-t border-border pt-4 space-y-1 text-sm">
-            <div className="flex justify-between text-muted-foreground">
-              <span>Subtotal</span>
-              <span>{formatINR(order.subtotal)}</span>
-            </div>
-            {order.discount > 0 && (
-              <div className="flex justify-between text-emerald-600">
-                <span>Discount</span>
-                <span>-{formatINR(order.discount)}</span>
+          {/* Right Column: Address, Tracking, Totals */}
+          <div className="space-y-6">
+            {order.shipping_address && (
+              <div>
+                <p className="eyebrow text-[10px] mb-2 text-gold">Delivery Address</p>
+                <p className="text-sm text-foreground leading-relaxed border-l-2 border-border pl-3">
+                  {(order.shipping_address as any).name}
+                  <br />
+                  {(order.shipping_address as any).line1}
+                  {(order.shipping_address as any).line2 &&
+                    `, ${(order.shipping_address as any).line2}`}
+                  <br />
+                  {(order.shipping_address as any).city}, {(order.shipping_address as any).state} :{" "}
+                  {(order.shipping_address as any).postal_code}
+                </p>
               </div>
             )}
-            <div className="flex justify-between text-muted-foreground">
-              <span>Shipping</span>
-              <span>{formatINR(order.shipping_cost)}</span>
-            </div>
-            <div className="flex justify-between font-semibold text-gold text-base pt-2 border-t border-border">
-              <span>Total</span>
-              <span>{formatINR(order.total)}</span>
-            </div>
-          </div>
 
-          {/* Return link */}
-          {order.status === "delivered" && (
-            <div className="pt-2">
-              <Link
-                href="/account/returns"
-                className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground border-b border-dashed border-muted-foreground pb-0.5"
-              >
-                Request Return or Exchange →
-              </Link>
+            {order.tracking_number && (
+              <div>
+                <p className="eyebrow text-[10px] mb-2 text-gold">Tracking Number</p>
+                <code className="text-sm font-mono bg-background px-3 py-1.5 border border-border inline-block">
+                  {order.tracking_number}
+                </code>
+              </div>
+            )}
+
+            <div className="border-t border-border pt-4 space-y-2 text-sm">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Subtotal</span>
+                <span>{formatINR(order.subtotal)}</span>
+              </div>
+              {order.discount > 0 && (
+                <div className="flex justify-between text-emerald-600">
+                  <span>Discount</span>
+                  <span>-{formatINR(order.discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-muted-foreground">
+                <span>Shipping</span>
+                <span>{formatINR(order.shipping_cost)}</span>
+              </div>
+              <div className="flex justify-between font-semibold text-foreground text-base pt-3 border-t border-border">
+                <span>Total</span>
+                <span>{formatINR(order.total)}</span>
+              </div>
             </div>
-          )}
+
+            {order.status === "delivered" && (
+              <div className="pt-2">
+                <Link
+                  href="/account/returns"
+                  className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground border-b border-dashed border-muted-foreground pb-0.5 inline-block"
+                >
+                  Request Return or Exchange →
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -367,104 +401,105 @@ export default function OrderHistory() {
   });
 
   const filtered = filter === "all" ? orders : orders.filter((o: any) => o.status === filter);
+  const TABS = ["all", "pending", "processing", "shipped", "delivered", "cancelled"] as const;
 
   return (
     <DashboardLayout title="My Orders" subtitle="Order History">
-      {/* Filter tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {(["all", "pending", "processing", "shipped", "delivered", "cancelled"] as const).map(
-          (f) => (
+      {/* Clean Tabs */}
+      <div className="flex gap-6 border-b border-border mb-8 overflow-x-auto scrollbar-hide">
+        {TABS.map((f) => {
+          const count =
+            f === "all" ? orders.length : orders.filter((o: any) => o.status === f).length;
+          return (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-colors ${
+              className={`pb-3 text-[11px] uppercase tracking-widest font-medium whitespace-nowrap transition-all border-b-2 ${
                 filter === f
-                  ? "bg-foreground text-background border-foreground"
-                  : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                  ? "border-gold text-gold"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
               {f === "all" ? "All Orders" : f}{" "}
-              <span className="opacity-60">
-                ({f === "all" ? orders.length : orders.filter((o: any) => o.status === f).length})
-              </span>
+              <span className="opacity-60 font-normal">({count})</span>
             </button>
-          ),
-        )}
+          );
+        })}
       </div>
 
-      {isLoading ? (
-        <div className="space-y-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="border border-border p-6 animate-pulse">
-              <div className="h-5 bg-champagne/50 rounded w-48 mb-3" />
-              <div className="h-3 bg-champagne/30 rounded w-64" />
-            </div>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="space-y-12">
-          <div className="py-16 text-center border border-dashed border-border bg-champagne/5 max-w-xl mx-auto space-y-4">
-            <Package className="h-10 w-10 mx-auto text-muted-foreground stroke-1" />
-            <h3 className="font-display text-2xl">No orders found</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              {filter === "all"
-                ? "You haven't placed any orders yet."
-                : `No ${filter} orders in your history.`}
-            </p>
-            {filter === "all" && (
-              <div className="pt-2">
-                <Link
-                  href="/shop"
-                  className="inline-block bg-foreground text-background px-6 py-3 text-xs uppercase tracking-widest hover:bg-gold hover:text-gold-foreground transition-all duration-300"
-                >
-                  Shop Now
-                </Link>
+      <div className="space-y-6">
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="border border-border p-6 animate-pulse">
+                <div className="h-5 bg-champagne/50 rounded w-48 mb-3" />
+                <div className="h-3 bg-champagne/30 rounded w-64" />
               </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="space-y-12">
+            <div className="py-16 text-center border border-dashed border-border bg-champagne/5 space-y-4">
+              <Package className="h-10 w-10 mx-auto text-muted-foreground stroke-1" />
+              <h3 className="font-display text-2xl">No orders found</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                {filter === "all"
+                  ? "You haven't placed any orders yet."
+                  : `No ${filter} orders in your history.`}
+              </p>
+              {filter === "all" && (
+                <div className="pt-2">
+                  <Link
+                    href="/collections"
+                    className="inline-block bg-foreground text-background px-6 py-3 text-xs uppercase tracking-widest hover:bg-gold hover:text-gold-foreground transition-all duration-300"
+                  >
+                    Shop Now
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {filter === "all" && collections.length > 0 && (
+              <section className="space-y-6 pt-6">
+                <h3 className="font-display text-lg border-b border-border pb-3">
+                  Explore Collections
+                </h3>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {collections.slice(0, 3).map((col: any) => (
+                    <Link
+                      key={col.id}
+                      href={`/collections/${col.slug}`}
+                      className="group relative h-48 overflow-hidden border border-border flex flex-col justify-end p-5 bg-ink text-background"
+                    >
+                      {col.image && (
+                        <img
+                          src={col.image}
+                          alt={col.name}
+                          className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" />
+                      <div className="relative z-10">
+                        <p className="text-[9px] eyebrow text-gold">{col.tagline || "ATELIER"}</p>
+                        <h4 className="font-display text-lg">{col.name}</h4>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
             )}
           </div>
-
-          {filter === "all" && collections.length > 0 && (
-            <section className="space-y-6 pt-6">
-              <h3 className="font-display text-lg border-b border-border pb-3">
-                Explore Collections
-              </h3>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {collections.slice(0, 3).map((col: any) => (
-                  <Link
-                    key={col.id}
-                    href={`/collections/${col.slug}`}
-                    className="group relative h-48 overflow-hidden border border-border flex flex-col justify-end p-5 bg-ink text-background"
-                  >
-                    {col.image && (
-                      <img
-                        src={col.image}
-                        alt={col.name}
-                        className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" />
-                    <div className="relative z-10">
-                      <p className="text-[9px] eyebrow text-gold">{col.tagline || "ATELIER"}</p>
-                      <h4 className="font-display text-lg">{col.name}</h4>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map((order: DbOrder) => (
+        ) : (
+          filtered.map((order: any) => (
             <OrderCard
               key={order.id}
               order={order}
               expanded={expandedId === order.id}
               onExpand={() => setExpandedId(expandedId === order.id ? null : order.id)}
             />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </DashboardLayout>
   );
 }

@@ -37,7 +37,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
         <MaintenancePage />
-        <Toaster position="top-right" richColors />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: { background: "#000000", color: "#ffffff", border: "none" },
+            className: "text-white shadow-lg rounded-md font-sans mt-10 md:mt-10",
+          }}
+        />
       </QueryClientProvider>
     );
   }
@@ -45,7 +51,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <OfflineDetector>{children}</OfflineDetector>
-      <Toaster position="top-right" richColors />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: { background: "#000000", color: "#ffffff", border: "none" },
+          className: "text-white shadow-lg rounded-md font-sans mt-10 md:mt-10",
+        }}
+      />
     </QueryClientProvider>
   );
 }

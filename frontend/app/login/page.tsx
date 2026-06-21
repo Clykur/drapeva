@@ -23,6 +23,14 @@ function LoginContent() {
   const redirect = searchParams.get("redirect") || "";
   const message = searchParams.get("message") || "";
 
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/");
+    }
+  }, [user, authLoading, router]);
+
   useEffect(() => {
     if (message) {
       toast.info(message, { id: "auth-gate-message" });
@@ -52,13 +60,15 @@ function LoginContent() {
         });
       }
 
-      toast.success("Welcome back to the atelier");
-      if (redirect) {
-        router.push(redirect);
-      } else if (profile?.role === "admin") {
+      toast.success(
+        profile?.name
+          ? `Welcome back, ${profile.name.split(" ")[0]}!`
+          : "Welcome back to the atelier",
+      );
+      if (profile?.role === "admin") {
         router.push("/admin");
       } else {
-        router.push("/dashboard");
+        router.push("/");
       }
     } catch (err: any) {
       toast.error(err.message || "Invalid credentials. Please try again.");
@@ -68,7 +78,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-16">
+    <div className="flex h-[100svh] overflow-hidden items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <p className="eyebrow text-gold">The Atelier</p>
@@ -76,15 +86,15 @@ function LoginContent() {
           <span className="gold-divider mt-4 block mx-auto" />
         </div>
 
-        <div className="border border-border bg-champagne/30 shadow-soft">
+        <div>
           {/* Tab switcher */}
-          <div className="grid grid-cols-2 border-b border-border">
+          <div className="flex justify-center gap-8 border-b border-border/40 mb-8">
             <button
               onClick={() => setTab("email")}
-              className={`flex items-center justify-center gap-2 py-4 text-xs uppercase tracking-widest font-medium transition-colors ${
+              className={`flex items-center justify-center gap-2 pb-4 text-xs uppercase tracking-widest font-medium transition-colors border-b-2 ${
                 tab === "email"
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <Mail className="h-3.5 w-3.5" />
@@ -92,10 +102,10 @@ function LoginContent() {
             </button>
             <button
               onClick={() => setTab("phone")}
-              className={`flex items-center justify-center gap-2 py-4 text-xs uppercase tracking-widest font-medium transition-colors ${
+              className={`flex items-center justify-center gap-2 pb-4 text-xs uppercase tracking-widest font-medium transition-colors border-b-2 ${
                 tab === "phone"
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <Phone className="h-3.5 w-3.5" />
@@ -103,7 +113,7 @@ function LoginContent() {
             </button>
           </div>
 
-          <div className="p-8 md:p-10">
+          <div className="p-0">
             {message && (
               <div className="mb-6 border border-gold/30 bg-gold/5 p-4 text-center text-xs tracking-wider text-gold-foreground uppercase">
                 {message}

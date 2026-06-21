@@ -114,20 +114,21 @@ export default function Support() {
   });
 
   return (
-    <DashboardLayout title="Support" subtitle="Help & Support">
-      {/* New Ticket Button */}
-      {!showForm && (
-        <div className="flex justify-end">
+    <DashboardLayout
+      title="Support"
+      subtitle="Help & Support"
+      headerAction={
+        !showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 border border-foreground px-5 py-3 text-xs uppercase tracking-wider font-medium hover:bg-foreground hover:text-background transition-colors"
+            className="inline-flex items-center gap-2 bg-foreground text-background px-5 py-3 text-xs uppercase tracking-wider font-medium hover:bg-gold hover:text-gold-foreground transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Support Ticket
           </button>
-        </div>
-      )}
-
+        )
+      }
+    >
       {/* Create Form */}
       {showForm && (
         <form
@@ -173,10 +174,10 @@ export default function Support() {
                 onChange={(e) => setForm((f) => ({ ...f, order_id: e.target.value }))}
                 className="w-full border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:border-foreground"
               >
-                <option value="">— Select an order —</option>
+                <option value="">- Select an order -</option>
                 {orders.map((o: any) => (
                   <option key={o.id} value={o.id}>
-                    #{o.id.slice(0, 8).toUpperCase()} —{" "}
+                    #{o.id.slice(0, 8).toUpperCase()} -{" "}
                     {new Date(o.created_at).toLocaleDateString("en-IN")}
                   </option>
                 ))}
@@ -235,8 +236,8 @@ export default function Support() {
           ))}
         </div>
       ) : tickets.length === 0 ? (
-        <div className="py-16 text-center border border-dashed border-border">
-          <HelpCircle className="h-10 w-10 mx-auto text-muted-foreground stroke-1 mb-4" />
+        <div className="py-16 text-center border border-dashed border-border bg-champagne/5 space-y-4">
+          <HelpCircle className="h-10 w-10 mx-auto text-muted-foreground stroke-1" />
           <p className="font-display text-xl">No support tickets</p>
           <p className="text-sm text-muted-foreground mt-2">
             Need help? Create a ticket and we'll respond within 24 hours.

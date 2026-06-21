@@ -49,7 +49,7 @@ export default function NotFoundPage() {
           </p>
           <div className="pt-6 flex flex-wrap justify-center gap-4">
             <Link
-              href="/shop"
+              href="/collections"
               className="bg-foreground text-background px-6 py-3.5 text-xs font-semibold tracking-widest uppercase hover:bg-gold hover:text-gold-foreground transition-all duration-300 inline-flex items-center gap-2 group"
             >
               Continue Shopping
@@ -71,11 +71,11 @@ export default function NotFoundPage() {
         <section className="space-y-8">
           <div className="border-b border-border pb-4 flex justify-between items-end">
             <div>
-              <p className="eyebrow">Atelier Favorites</p>
+              <p className="eyebrow">Favorites</p>
               <h2 className="font-display text-2xl md:text-3xl mt-1">Best Sellers</h2>
             </div>
             <Link
-              href="/shop"
+              href="/collections"
               className="text-xs uppercase tracking-widest text-muted-foreground hover:text-gold transition-colors font-medium"
             >
               View All
@@ -98,7 +98,7 @@ export default function NotFoundPage() {
               <h2 className="font-display text-2xl md:text-3xl mt-1">New Arrivals</h2>
             </div>
             <Link
-              href="/shop"
+              href="/collections"
               className="text-xs uppercase tracking-widest text-muted-foreground hover:text-gold transition-colors font-medium"
             >
               View All
@@ -117,11 +117,11 @@ export default function NotFoundPage() {
         <section className="space-y-8">
           <div className="border-b border-border pb-4 flex justify-between items-end">
             <div>
-              <p className="eyebrow">Atelier Edit</p>
+              <p className="eyebrow">Trending Edit</p>
               <h2 className="font-display text-2xl md:text-3xl mt-1">Trending Sarees</h2>
             </div>
             <Link
-              href="/shop"
+              href="/collections"
               className="text-xs uppercase tracking-widest text-muted-foreground hover:text-gold transition-colors font-medium"
             >
               View All

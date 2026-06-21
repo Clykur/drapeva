@@ -56,7 +56,7 @@ export default function CartPage() {
           </p>
           <div className="pt-6">
             <Link
-              href="/shop"
+              href="/collections"
               className="bg-foreground text-background px-8 py-4 text-xs font-semibold tracking-widest uppercase hover:bg-gold hover:text-gold-foreground transition-all duration-300 inline-flex items-center gap-2 group"
             >
               Start Shopping
@@ -74,7 +74,7 @@ export default function CartPage() {
             <h2 className="font-display text-2xl md:text-3xl mt-1">Recommended for You</h2>
           </div>
           <Link
-            href="/shop"
+            href="/collections"
             className="text-xs uppercase tracking-widest text-muted-foreground hover:text-gold transition-colors font-medium"
           >
             Explore All

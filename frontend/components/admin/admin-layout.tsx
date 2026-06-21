@@ -87,11 +87,11 @@ export function AdminLayout({ children, title, subtitle, actions, activeHref }: 
       <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-background">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-border px-6">
-          <div className="h-7 w-7 rounded bg-gold/20 grid place-items-center">
-            <BarChart2 className="h-4 w-4 text-gold" />
+          <div className="h-7 w-7 rounded grid place-items-center">
+            <BarChart2 className="h-5 w-5 text-gold" />
           </div>
           <div>
-            <p className="font-display text-sm tracking-widest text-gold">ATELIER CMS</p>
+            <p className="font-display text-sm tracking-widest text-gold">Admin CMS</p>
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
               Admin Console
             </p>
@@ -107,7 +107,7 @@ export function AdminLayout({ children, title, subtitle, actions, activeHref }: 
               <Link
                 key={to}
                 href={to}
-                className={`group flex items-center gap-3 rounded px-3 py-2.5 text-xs font-semibold uppercase tracking-widest transition-all ${
+                className={`group flex items-center gap-3 px-3 py-2.5 text-xs font-semibold uppercase tracking-widest transition-all ${
                   isActive
                     ? "bg-gold/10 text-gold"
                     : "text-muted-foreground hover:bg-champagne/40 hover:text-foreground"
@@ -122,9 +122,9 @@ export function AdminLayout({ children, title, subtitle, actions, activeHref }: 
         </nav>
 
         {/* User */}
-        <div className="border-t border-border p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-8 w-8 rounded-full bg-gold/20 grid place-items-center text-gold font-semibold text-xs">
+        <div className="border-t border-border p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-8 w-8 bg-gold/20 grid place-items-center text-gold font-semibold text-xs">
               {user.name?.charAt(0)?.toUpperCase() || "A"}
             </div>
             <div className="min-w-0">
@@ -132,12 +132,12 @@ export function AdminLayout({ children, title, subtitle, actions, activeHref }: 
               <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
+
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors py-1"
+            className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Sign out
           </button>
         </div>
       </aside>

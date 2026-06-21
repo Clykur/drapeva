@@ -146,7 +146,7 @@ function SearchContent() {
                 </p>
                 <div className="pt-2">
                   <Link
-                    href="/shop"
+                    href="/collections"
                     className="inline-block bg-foreground text-background px-6 py-2.5 text-xs font-semibold tracking-widest uppercase hover:bg-gold hover:text-gold-foreground transition-all duration-300"
                   >
                     Browse All Sarees
