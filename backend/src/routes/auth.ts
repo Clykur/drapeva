@@ -8,9 +8,12 @@ import { authenticateJWT, AuthenticatedRequest } from "../middlewares/auth.js";
 import { supabase, getSupabaseClient } from "../services/supabase.js";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "super-secret-luxury-token-key-2026";
-const JWT_REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET || "super-secret-luxury-refresh-token-key-2026";
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
+if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+  throw new Error("Critical security keys JWT_SECRET or JWT_REFRESH_SECRET are missing from the environment");
+}
 
 // Validation Schemas
 const RegisterSchema = z.object({
@@ -27,15 +30,23 @@ const LoginSchema = z.object({
 
 // Helper to generate tokens
 function generateTokens(user: { id: string; email: string; role: "CUSTOMER" | "ADMIN" }) {
-  const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
-    expiresIn: "15m",
-  });
+  const accessToken = jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    JWT_SECRET!,
+    {
+      expiresIn: "15m",
+      audience: "drapeva-app",
+      issuer: "drapeva-api",
+    }
+  );
   const refreshToken = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
-    JWT_REFRESH_SECRET,
+    JWT_REFRESH_SECRET!,
     {
       expiresIn: "7d",
-    },
+      audience: "drapeva-app",
+      issuer: "drapeva-api",
+    }
   );
   return { accessToken, refreshToken };
 }
@@ -175,19 +186,35 @@ router.post("/refresh", async (req: Request, res: Response) => {
     return res.status(401).json({ error: "Refresh token is required" });
   }
 
-  jwt.verify(refreshToken, JWT_REFRESH_SECRET, (err: any, decoded: any) => {
-    if (err) {
-      return res.status(403).json({ error: "Invalid refresh token" });
+  jwt.verify(
+    refreshToken,
+    JWT_REFRESH_SECRET!,
+    { audience: "drapeva-app", issuer: "drapeva-api" },
+    (err: any, decoded: any) => {
+      if (err) {
+        return res.status(403).json({ error: "Invalid refresh token" });
+      }
+
+      const user = decoded as { id: string; email: string; role: "CUSTOMER" | "ADMIN" };
+      const accessToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        JWT_SECRET!,
+        {
+          expiresIn: "15m",
+          audience: "drapeva-app",
+          issuer: "drapeva-api",
+        }
+      );
+
+      res.json({ accessToken });
     }
-
-    const user = decoded as { id: string; email: string; role: "CUSTOMER" | "ADMIN" };
-    const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
-      expiresIn: "15m",
-    });
-
-    res.json({ accessToken });
-  });
+  );
 });
+
+import { WhatsAppService } from "../services/whatsapp.js";
+
+// Store OTPs in memory with expiration: key is phone, value is { code, expiresAt }
+const otpStore = new Map<string, { code: string; expiresAt: Date }>();
 
 // 4. Request Forgot Password
 router.post("/forgot-password", async (req: Request, res: Response, next: NextFunction) => {
@@ -197,9 +224,14 @@ router.post("/forgot-password", async (req: Request, res: Response, next: NextFu
   try {
     const user = await prisma.user.findUnique({ where: { email } });
     if (user) {
-      // Mock reset token
-      const resetToken = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "1h" });
-      const resetLink = `http://localhost:3000/auth/reset-password?token=${resetToken}`;
+      // Invalidate existing resets by using the password hash in the JWT secret
+      const secret = JWT_SECRET! + user.passwordHash;
+      const resetToken = jwt.sign({ id: user.id }, secret, {
+        expiresIn: "1h",
+        audience: "drapeva-app",
+        issuer: "drapeva-api",
+      });
+      const resetLink = `http://localhost:3000/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
       await EmailService.sendEmail(
         email,
@@ -216,16 +248,34 @@ router.post("/forgot-password", async (req: Request, res: Response, next: NextFu
 
 // 5. Reset Password
 router.post("/reset-password", async (req: Request, res: Response, next: NextFunction) => {
-  const { token, password } = req.body;
-  if (!token || !password)
-    return res.status(400).json({ error: "Token and password are required" });
+  const { token, password, email } = req.body;
+  if (!token || !password || !email)
+    return res.status(400).json({ error: "Token, email, and password are required" });
+
+  if (password.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters long" });
+  }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    const secret = JWT_SECRET! + user.passwordHash;
+    const decoded = jwt.verify(token, secret, {
+      audience: "drapeva-app",
+      issuer: "drapeva-api",
+    }) as { id: string };
+
+    if (decoded.id !== user.id) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
 
     await prisma.user.update({
-      where: { id: decoded.id },
+      where: { id: user.id },
       data: { passwordHash },
     });
 
@@ -241,8 +291,11 @@ router.post("/verify-email", async (req: Request, res: Response) => {
   if (!token) return res.status(400).json({ error: "Token is required" });
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
-    // In production, we'd have a 'isEmailVerified' flag. We will write an audit log for confirmation
+    const decoded = jwt.verify(token, JWT_SECRET!, {
+      audience: "drapeva-app",
+      issuer: "drapeva-api",
+    }) as { id: string };
+    
     await prisma.auditLog.create({
       data: {
         userId: decoded.id,
@@ -256,18 +309,45 @@ router.post("/verify-email", async (req: Request, res: Response) => {
   }
 });
 
-// 7. OTP Verification
+// 7a. Send OTP
+router.post("/otp-send", async (req: Request, res: Response) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: "Phone number is required" });
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+  otpStore.set(phone, { code, expiresAt });
+
+  await WhatsAppService.sendNotification(
+    phone,
+    `Your Drapeva verification code is: ${code}. This code is valid for 5 minutes.`
+  );
+
+  res.json({ message: "OTP sent successfully" });
+});
+
+// 7b. OTP Verification
 router.post("/otp-verify", async (req: Request, res: Response) => {
   const { phone, code } = req.body;
   if (!phone || !code)
     return res.status(400).json({ error: "Phone number and OTP code are required" });
 
-  // Mock checking OTP code (e.g. 123456 always matches)
-  if (code === "123456") {
-    res.json({ message: "OTP verification successful" });
-  } else {
-    res.status(400).json({ error: "Invalid OTP code" });
+  const record = otpStore.get(phone);
+  if (!record) {
+    return res.status(400).json({ error: "No OTP sent for this number" });
   }
+
+  if (record.expiresAt < new Date()) {
+    otpStore.delete(phone);
+    return res.status(400).json({ error: "OTP has expired" });
+  }
+
+  if (record.code !== code) {
+    return res.status(400).json({ error: "Invalid OTP code" });
+  }
+
+  otpStore.delete(phone); // Burn token on use
+  res.json({ message: "OTP verification successful" });
 });
 
 // 8. Fetch current user profile details

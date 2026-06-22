@@ -1,20 +1,24 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "./config/env.js";
 
 // Validate required environment variables
-const requiredEnv = ["DATABASE_URL", "JWT_SECRET", "RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET"];
+const criticalEnv = ["DATABASE_URL", "JWT_SECRET", "JWT_REFRESH_SECRET"];
+const recommendedEnv = ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "STRIPE_SECRET_KEY"];
 
-const missingEnv = requiredEnv.filter((envVar) => !process.env[envVar]);
-if (missingEnv.length > 0) {
+const missingCritical = criticalEnv.filter((envVar) => !process.env[envVar]);
+if (missingCritical.length > 0) {
+  const timestamp = new Date().toISOString();
+  console.error(
+    `[${timestamp}] FATAL: Missing critical environment variables: ${missingCritical.join(", ")}. Server cannot start.`
+  );
+  process.exit(1);
+}
+
+const missingRecommended = recommendedEnv.filter((envVar) => !process.env[envVar]);
+if (missingRecommended.length > 0) {
   const timestamp = new Date().toISOString();
   console.warn(
-    `[${timestamp}] WARNING: Missing recommended environment variables: ${missingEnv.join(", ")}`,
+    `[${timestamp}] WARNING: Missing recommended environment variables: ${missingRecommended.join(", ")}`
   );
-  if (process.env.NODE_ENV === "production") {
-    console.error(
-      `[${timestamp}] CRITICAL: Server starting in production mode but missing required secrets. Application might fail.`,
-    );
-  }
 }
 
 import app from "./app.js";

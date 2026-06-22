@@ -74,11 +74,13 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children, title, subtitle, actions, activeHref }: AdminLayoutProps) {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout, isLoggingOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    if (isLoggingOut) return;
+
     if (!isAuthenticated()) {
       toast.error("Please sign in to access the admin panel");
       router.push("/login");
@@ -86,7 +88,7 @@ export function AdminLayout({ children, title, subtitle, actions, activeHref }: 
       router.push("/access-denied");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, isLoggingOut]);
 
   if (!user || !isAdmin()) {
     return (

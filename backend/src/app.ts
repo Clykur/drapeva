@@ -16,8 +16,37 @@ const app = express();
 // Trust proxy for rate limiter behind next.js rewrites
 app.set("trust proxy", 1);
 
-// Security: Helmet headers
-app.use(helmet());
+// Security: Helmet headers with custom CSP and HSTS
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    referrerPolicy: {
+      policy: "no-referrer",
+    },
+  })
+);
+
+// Custom security headers
+app.use((req, res, next) => {
+  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  next();
+});
 
 // Logging: Custom request logging middleware
 app.use((req, res, next) => {
@@ -42,6 +71,15 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
+// Strict rate limiter for Authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit to 30 requests per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login/registration attempts, please try again after 15 minutes" },
+});
+
 // CORS Middlewares
 const rawFrontendUrl = process.env.FRONTEND_URL;
 const cleanFrontendUrl = rawFrontendUrl ? rawFrontendUrl.replace(/\/$/, "") : null;
@@ -59,7 +97,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // REST Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/appointments", appointmentRoutes);

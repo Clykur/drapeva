@@ -4,6 +4,8 @@ import prisma from "../config/prisma.js";
 import { authenticateJWT, requireRole, AuthenticatedRequest } from "../middlewares/auth.js";
 import { EmailService } from "../services/email.js";
 
+import { escapeHTML } from "../utils/sanitize.js";
+
 const router = Router();
 
 const TicketSchema = z.object({
@@ -21,10 +23,10 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
 
     const ticket = await prisma.supportTicket.create({
       data: {
-        name: data.name,
+        name: escapeHTML(data.name),
         email: data.email,
-        subject: data.subject,
-        message: data.message,
+        subject: escapeHTML(data.subject),
+        message: escapeHTML(data.message),
         priority: data.priority || "MEDIUM",
         status: "OPEN",
       },
@@ -97,13 +99,19 @@ router.put(
     const { status } = req.body;
 
     try {
+      const StatusSchema = z.enum(["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]);
+      const parsedStatus = StatusSchema.parse(status);
+
       const ticket = await prisma.supportTicket.update({
         where: { id: id as string },
-        data: { status },
+        data: { status: parsedStatus },
       });
 
       res.json(ticket);
     } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid status value" });
+      }
       next(err);
     }
   },

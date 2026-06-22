@@ -90,18 +90,20 @@ function KpiCard({
       : value.toLocaleString();
 
   return (
-    <div className="bg-white rounded-xl border border-border shadow-sm p-5 hover:shadow-md transition-all group">
-      <div className="flex justify-between items-start">
-        <div className="text-muted-foreground text-sm font-medium">{title}</div>
-        <div className="text-muted-foreground transition-colors group-hover:text-foreground">
-          <Icon className="w-4 h-4" />
+    <div className="bg-white rounded-xl border border-border shadow-sm p-5 hover:shadow-md transition-all group flex flex-col justify-between h-full min-h-[180px]">
+      <div>
+        <div className="flex justify-between items-start">
+          <div className="text-muted-foreground text-sm font-medium min-h-[2.5rem] flex items-start pr-2 leading-tight">
+            {title}
+          </div>
+          <div className="text-muted-foreground transition-colors group-hover:text-foreground shrink-0 mt-0.5">
+            <Icon className="w-4 h-4" />
+          </div>
         </div>
-      </div>
 
-      <div className="mt-4 flex items-end justify-between">
-        <div>
-          <div className="text-2xl font-semibold tracking-tight">{formattedValue}</div>
-          <div className="flex items-center mt-1 text-xs font-medium">
+        <div className="mt-2">
+          <div className="text-2xl font-semibold tracking-tight leading-none">{formattedValue}</div>
+          <div className="flex items-center mt-1.5 text-xs font-medium">
             <span
               className={`flex items-center ${isPositive ? "text-emerald-600" : "text-red-500"}`}
             >
@@ -117,7 +119,11 @@ function KpiCard({
         </div>
       </div>
 
-      {sparkline && <Sparkline data={sparkline} positive={isPositive} />}
+      {sparkline && (
+        <div className="mt-3 w-full">
+          <Sparkline data={sparkline} positive={isPositive} />
+        </div>
+      )}
     </div>
   );
 }
