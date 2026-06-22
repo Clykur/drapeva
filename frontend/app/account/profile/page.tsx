@@ -34,7 +34,7 @@ export default function ProfileSettings() {
           .from("profiles")
           .select("*")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
         if (profile) {
           // Refresh auth store with updated profile
           const {

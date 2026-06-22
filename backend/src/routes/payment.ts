@@ -118,7 +118,11 @@ router.post("/verify", authenticateSupabase, async (req: any, res: Response) => 
       return res.status(404).json({ error: "Order not found" });
     }
 
-    if (orderData.user_id !== req.user.id && req.user.role !== "ADMIN" && orderData.user_id !== null) {
+    if (
+      orderData.user_id !== req.user.id &&
+      req.user.role !== "ADMIN" &&
+      orderData.user_id !== null
+    ) {
       return res.status(403).json({ error: "Unauthorized order access" });
     }
 

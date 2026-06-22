@@ -8,7 +8,7 @@ const missingCritical = criticalEnv.filter((envVar) => !process.env[envVar]);
 if (missingCritical.length > 0) {
   const timestamp = new Date().toISOString();
   console.error(
-    `[${timestamp}] FATAL: Missing critical environment variables: ${missingCritical.join(", ")}. Server cannot start.`
+    `[${timestamp}] FATAL: Missing critical environment variables: ${missingCritical.join(", ")}. Server cannot start.`,
   );
   process.exit(1);
 }
@@ -17,7 +17,7 @@ const missingRecommended = recommendedEnv.filter((envVar) => !process.env[envVar
 if (missingRecommended.length > 0) {
   const timestamp = new Date().toISOString();
   console.warn(
-    `[${timestamp}] WARNING: Missing recommended environment variables: ${missingRecommended.join(", ")}`
+    `[${timestamp}] WARNING: Missing recommended environment variables: ${missingRecommended.join(", ")}`,
   );
 }
 

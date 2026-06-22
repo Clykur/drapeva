@@ -861,6 +861,15 @@ export const auditLogApi = {
     const admin_email = entry.admin_email || session?.user?.email || "System";
     const admin_id = entry.admin_id || session?.user?.id || null;
 
+    const { data: profile } = session?.user
+      ? await supabase.from("profiles").select("role").eq("id", session.user.id).maybeSingle()
+      : { data: null };
+
+    // Only allow admin users to insert into audit_logs table (enforced by RLS)
+    if (session?.user && profile?.role !== "admin") {
+      return;
+    }
+
     const insertPayload = {
       action: entry.action,
       resource_type: entry.resource_type,
@@ -1830,32 +1839,19 @@ export const authApi = {
 
   async register(params: { email?: string; phone?: string; password?: string; name: string }) {
     const { email, phone, password, name } = params;
-    const signUpParams: any = {
-      password,
-      options: { data: { name, role: "customer", phone: phone || "" } },
-    };
-    if (email) {
-      signUpParams.email = email;
-    } else if (phone) {
-      const formattedPhone = phone.startsWith("+") ? phone : `+91${phone.replace(/\D/g, "")}`;
-      signUpParams.phone = formattedPhone;
-    } else {
-      throw new Error("Either email or phone is required for registration");
-    }
-    const { data, error } = await supabase.auth.signUp(signUpParams);
-    if (error) throw error;
 
-    if (data.user) {
-      await auditLogApi.log({
-        action: "User registered",
-        resource_type: "user",
-        resource_id: data.user.id,
-        admin_email: data.user.email || email || phone || "System",
-        admin_id: data.user.id,
-      });
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, phone, password, name }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to register account");
     }
 
-    return data;
+    return await res.json();
   },
 
   async sendOtp(phone: string) {

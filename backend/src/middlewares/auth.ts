@@ -32,7 +32,7 @@ export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: 
 
         reqAny.user = decoded as { id: string; email: string; role: "CUSTOMER" | "ADMIN" };
         next();
-      }
+      },
     );
   } else {
     res.status(401).json({ error: "Authorization token required" });

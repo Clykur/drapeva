@@ -37,7 +37,7 @@ app.use(
     referrerPolicy: {
       policy: "no-referrer",
     },
-  })
+  }),
 );
 
 // Custom security headers

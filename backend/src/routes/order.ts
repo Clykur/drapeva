@@ -287,7 +287,12 @@ router.post(
         });
 
         // Send order emails & messages
-        await EmailService.sendOrderConfirmation(updatedOrder.email, updatedOrder.name, updatedOrder.id, updatedOrder.total);
+        await EmailService.sendOrderConfirmation(
+          updatedOrder.email,
+          updatedOrder.name,
+          updatedOrder.id,
+          updatedOrder.total,
+        );
         await WhatsAppService.sendOrderUpdate(updatedOrder.phone, updatedOrder.id, "PROCESSING");
 
         res.json({ success: true, message: "Payment verified successfully" });
