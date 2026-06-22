@@ -81,11 +81,39 @@ export function initAuthListener() {
 
     if (session?.user) {
       // Fetch profile from DB
-      const { data: profile } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", session.user.id)
-        .single();
+        .maybeSingle();
+
+      let profile = profileData;
+
+      if (profileError) {
+        console.warn("Failed to fetch profile during auth listener:", profileError.message);
+      }
+
+      if (!profile) {
+        const metadata = session.user.user_metadata || {};
+        const { data: newProfile, error: insertError } = await supabase
+          .from("profiles")
+          .insert({
+            id: session.user.id,
+            email: session.user.email || "",
+            name:
+              metadata.name || metadata.full_name || session.user.email?.split("@")[0] || "User",
+            phone: session.user.phone || metadata.phone || null,
+            role: metadata.role || "customer",
+          })
+          .select()
+          .maybeSingle();
+
+        if (insertError) {
+          console.error("Failed to auto-create profile in auth listener:", insertError.message);
+        } else if (newProfile) {
+          profile = newProfile;
+        }
+      }
 
       if (profile) {
         setAuth(profile, {

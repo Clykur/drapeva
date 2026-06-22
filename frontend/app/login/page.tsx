@@ -27,9 +27,15 @@ function LoginContent() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/");
+      if (redirect) {
+        router.push(redirect);
+      } else if (user.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, redirect]);
 
   useEffect(() => {
     if (message) {
@@ -48,11 +54,31 @@ function LoginContent() {
       // The onAuthStateChange listener in providers.tsx will fire with SIGNED_IN
       // event and automatically update auth state + sync cart/wishlist.
       // We still set auth here for instant UI update.
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", session.user.id)
-        .single();
+        .maybeSingle();
+
+      if (!profile) {
+        const metadata = session.user.user_metadata || {};
+        const { data: newProfile } = await supabase
+          .from("profiles")
+          .insert({
+            id: session.user.id,
+            email: session.user.email || "",
+            name:
+              metadata.name || metadata.full_name || session.user.email?.split("@")[0] || "User",
+            phone: session.user.phone || metadata.phone || null,
+            role: metadata.role || "customer",
+          })
+          .select()
+          .maybeSingle();
+        if (newProfile) {
+          profile = newProfile;
+        }
+      }
+
       if (profile) {
         setAuth(profile, {
           access_token: session.access_token,
@@ -65,7 +91,10 @@ function LoginContent() {
           ? `Welcome back, ${profile.name.split(" ")[0]}!`
           : "Welcome back to the Maison",
       );
-      if (profile?.role === "admin") {
+
+      if (redirect) {
+        router.push(redirect);
+      } else if (profile?.role === "admin") {
         router.push("/admin");
       } else {
         router.push("/");

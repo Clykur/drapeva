@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams, useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
@@ -10,12 +10,29 @@ import { supabase } from "@/lib/supabase";
 import { Phone, ArrowLeft } from "lucide-react";
 
 export default function OtpVerification() {
+  const router = useRouter();
+  const setAuth = useAuth((s) => s.setAuth);
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") || "";
+  const { user, loading: authLoading } = useAuth();
+
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const setAuth = useAuth((s) => s.setAuth);
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (redirect) {
+        router.push(redirect);
+      } else if (user.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
+    }
+  }, [user, authLoading, router, redirect]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,11 +68,29 @@ export default function OtpVerification() {
       const data = await authApi.verifyOtp(phone, code);
 
       if (data.session) {
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", data.session.user.id)
-          .single();
+          .maybeSingle();
+
+        if (!profile) {
+          const metadata = data.session.user.user_metadata || {};
+          const { data: newProfile } = await supabase
+            .from("profiles")
+            .insert({
+              id: data.session.user.id,
+              email: data.session.user.email || "",
+              name: metadata.name || metadata.full_name || data.session.user.phone || "User",
+              phone: data.session.user.phone || metadata.phone || null,
+              role: metadata.role || "customer",
+            })
+            .select()
+            .maybeSingle();
+          if (newProfile) {
+            profile = newProfile;
+          }
+        }
 
         if (profile) {
           setAuth(profile, {
@@ -63,12 +98,16 @@ export default function OtpVerification() {
             refresh_token: data.session.refresh_token,
           });
         }
+
         toast.success(
           profile?.name
             ? `Verified! Welcome back, ${profile.name.split(" ")[0]}.`
             : "Verified! Welcome to the Maison.",
         );
-        if (profile?.role === "admin") {
+
+        if (redirect) {
+          router.push(redirect);
+        } else if (profile?.role === "admin") {
           router.push("/admin");
         } else {
           router.push("/");

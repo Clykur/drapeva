@@ -12,7 +12,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
-  throw new Error("Critical security keys JWT_SECRET or JWT_REFRESH_SECRET are missing from the environment");
+  throw new Error(
+    "Critical security keys JWT_SECRET or JWT_REFRESH_SECRET are missing from the environment",
+  );
 }
 
 // Validation Schemas
@@ -30,15 +32,11 @@ const LoginSchema = z.object({
 
 // Helper to generate tokens
 function generateTokens(user: { id: string; email: string; role: "CUSTOMER" | "ADMIN" }) {
-  const accessToken = jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    JWT_SECRET!,
-    {
-      expiresIn: "15m",
-      audience: "drapeva-app",
-      issuer: "drapeva-api",
-    }
-  );
+  const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET!, {
+    expiresIn: "15m",
+    audience: "drapeva-app",
+    issuer: "drapeva-api",
+  });
   const refreshToken = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     JWT_REFRESH_SECRET!,
@@ -46,7 +44,7 @@ function generateTokens(user: { id: string; email: string; role: "CUSTOMER" | "A
       expiresIn: "7d",
       audience: "drapeva-app",
       issuer: "drapeva-api",
-    }
+    },
   );
   return { accessToken, refreshToken };
 }
@@ -66,14 +64,13 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
     let signUpError: any = null;
 
     if (sbClient) {
-      const result = await sbClient.auth.signUp({
+      const result = await sbClient.auth.admin.createUser({
         email: data.email,
         password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            phone: data.phone || "",
-          },
+        email_confirm: true,
+        user_metadata: {
+          name: data.name,
+          phone: data.phone || "",
         },
       });
       authData = result.data;
@@ -203,11 +200,11 @@ router.post("/refresh", async (req: Request, res: Response) => {
           expiresIn: "15m",
           audience: "drapeva-app",
           issuer: "drapeva-api",
-        }
+        },
       );
 
       res.json({ accessToken });
-    }
+    },
   );
 });
 
@@ -295,7 +292,7 @@ router.post("/verify-email", async (req: Request, res: Response) => {
       audience: "drapeva-app",
       issuer: "drapeva-api",
     }) as { id: string };
-    
+
     await prisma.auditLog.create({
       data: {
         userId: decoded.id,
@@ -320,7 +317,7 @@ router.post("/otp-send", async (req: Request, res: Response) => {
 
   await WhatsAppService.sendNotification(
     phone,
-    `Your Drapeva verification code is: ${code}. This code is valid for 5 minutes.`
+    `Your Drapeva verification code is: ${code}. This code is valid for 5 minutes.`,
   );
 
   res.json({ message: "OTP sent successfully" });

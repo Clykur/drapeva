@@ -45,7 +45,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-20 border-t-0 bg-ink text-background">
       <div className="mx-auto max-w-7xl px-4 py-20 lg:py-32">
-        <div className="grid gap-16 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
+        <div className="grid gap-16 lg:grid-cols-[2fr_1fr_1fr_1fr]">
           {/* Brand */}
           <div className="flex flex-col items-start pr-8">
             <Link href="/" className="inline-block select-none group" aria-label="Drapeva home">
@@ -79,63 +79,13 @@ export function SiteFooter() {
             </a>
           </div>
 
-          {/* Shop */}
-          <div>
-            <h4 className="text-[10px] font-medium uppercase tracking-[0.3em] text-background/40 mb-8">
-              Collection
-            </h4>
-
-            <ul className="space-y-4">
-              <li>
-                <Link
-                  href="/collections"
-                  className="text-sm font-light text-background/70 transition-colors hover:text-background"
-                >
-                  All Sarees
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/bestsellers?category=best-sellers"
-                  className="text-sm font-light text-background/70 transition-colors hover:text-background"
-                >
-                  Best Sellers
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/collections?category=wedding-sarees"
-                  className="text-sm font-light text-background/70 transition-colors hover:text-background"
-                >
-                  Collection
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/new-arrivals"
-                  className="text-sm font-light text-background/70 transition-colors hover:text-background"
-                >
-                  New Arrivals
-                </Link>
-              </li>
-            </ul>
-          </div>
-
           {/* Customer Care */}
           <div>
             <h4 className="text-[10px] font-medium uppercase tracking-[0.3em] text-background/40 mb-8">
-              Customer Care
+              Policies
             </h4>
 
             <ul className="space-y-4">
-              <li>
-                <Link
-                  href="/support"
-                  className="text-sm font-light text-background/70 transition-colors hover:text-background"
-                >
-                  Contact Us
-                </Link>
-              </li>
               <li>
                 <Link
                   href="/support"
@@ -188,10 +138,10 @@ export function SiteFooter() {
               </li>
               <li>
                 <Link
-                  href="/wishlist"
+                  href="/bestsellers?category=best-sellers"
                   className="text-sm font-light text-background/70 transition-colors hover:text-background"
                 >
-                  Wishlist
+                  Best Sellers
                 </Link>
               </li>
               <li>

@@ -68,29 +68,8 @@ export default function Register() {
         });
       }
 
-      if (data.session) {
-        // Auto-confirmed (email/phone confirmation disabled)
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", data.session.user.id)
-          .single();
-        if (profile) {
-          setAuth(profile, {
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
-          });
-        }
-        toast.success(
-          profile?.name
-            ? `Welcome to Drapeva, ${profile.name.split(" ")[0]}!`
-            : "Welcome to the Drapeva atelier!",
-        );
-        router.push("/");
-      } else {
-        // Confirmation required
-        setRegistered(true);
-      }
+      toast.success("Account created successfully! Please sign in.");
+      router.push("/login");
     } catch (err: any) {
       if (err.message?.includes("already registered") || err.message?.includes("already exists")) {
         toast.error("This identifier is already registered. Please sign in instead.");
