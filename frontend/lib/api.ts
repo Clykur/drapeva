@@ -378,6 +378,11 @@ export const ordersApi = {
   }) {
     const { data, error } = await supabase.from("orders").insert(order).select().single();
     if (error) throw error;
+    await auditLogApi.log({
+      action: `Created order with status ${data.status}`,
+      resource_type: "order",
+      resource_id: data.id,
+    });
     return data;
   },
 
@@ -556,12 +561,22 @@ export const addressesApi = {
       .select()
       .single();
     if (error) throw error;
+    await auditLogApi.log({
+      action: "Created customer address",
+      resource_type: "address",
+      resource_id: data.id,
+    });
     return data as CustomerAddress;
   },
 
   async update(id: string, address: Partial<CustomerAddress>) {
     const { error } = await supabase.from("customer_addresses").update(address).eq("id", id);
     if (error) throw error;
+    await auditLogApi.log({
+      action: "Updated customer address",
+      resource_type: "address",
+      resource_id: id,
+    });
   },
 
   async setDefault(id: string, userId: string) {
@@ -572,11 +587,21 @@ export const addressesApi = {
       .update({ is_default: true })
       .eq("id", id);
     if (error) throw error;
+    await auditLogApi.log({
+      action: "Set address as default",
+      resource_type: "address",
+      resource_id: id,
+    });
   },
 
   async delete(id: string) {
     const { error } = await supabase.from("customer_addresses").delete().eq("id", id);
     if (error) throw error;
+    await auditLogApi.log({
+      action: "Deleted customer address",
+      resource_type: "address",
+      resource_id: id,
+    });
   },
 };
 
@@ -631,6 +656,12 @@ export const supportApi = {
       attachments: [],
     });
 
+    await auditLogApi.log({
+      action: "Created support ticket",
+      resource_type: "ticket",
+      resource_id: newTicket.id,
+    });
+
     return newTicket as SupportTicket;
   },
 
@@ -641,6 +672,13 @@ export const supportApi = {
       .select()
       .single();
     if (error) throw error;
+
+    await auditLogApi.log({
+      action: `Added message to ticket (${message.sender_type})`,
+      resource_type: "ticket",
+      resource_id: ticketId,
+    });
+
     return data as SupportMessage;
   },
 
@@ -674,6 +712,12 @@ export const supportApi = {
       })
       .eq("id", id);
     if (error) throw error;
+
+    await auditLogApi.log({
+      action: `Updated ticket status to ${status}`,
+      resource_type: "ticket",
+      resource_id: id,
+    });
   },
 };
 
@@ -766,6 +810,13 @@ export const returnsApi = {
       .select()
       .single();
     if (error) throw error;
+
+    await auditLogApi.log({
+      action: "Requested return for order",
+      resource_type: "return",
+      resource_id: data.id,
+    });
+
     return data as ReturnRequest;
   },
 
@@ -789,6 +840,12 @@ export const returnsApi = {
       })
       .eq("id", id);
     if (error) throw error;
+
+    await auditLogApi.log({
+      action: `Updated return request status to ${status}`,
+      resource_type: "return",
+      resource_id: id,
+    });
   },
 };
 
@@ -801,8 +858,8 @@ export const auditLogApi = {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    const admin_email = session?.user?.email || "System";
-    const admin_id = session?.user?.id || null;
+    const admin_email = entry.admin_email || session?.user?.email || "System";
+    const admin_id = entry.admin_id || session?.user?.id || null;
 
     const insertPayload = {
       action: entry.action,
@@ -868,6 +925,11 @@ export const reviewsApi = {
   }) {
     const { data, error } = await supabase.from("reviews").insert(review).select().single();
     if (error) throw error;
+    await auditLogApi.log({
+      action: "Submitted product review",
+      resource_type: "review",
+      resource_id: data.id,
+    });
     return data;
   },
 
@@ -1754,6 +1816,15 @@ export const authApi = {
     }
     const { data, error } = await supabase.auth.signInWithPassword(credentials);
     if (error) throw error;
+
+    await auditLogApi.log({
+      action: "User logged in",
+      resource_type: "user",
+      resource_id: data.user?.id,
+      admin_email: data.user?.email || identifier,
+      admin_id: data.user?.id,
+    });
+
     return data;
   },
 
@@ -1773,6 +1844,17 @@ export const authApi = {
     }
     const { data, error } = await supabase.auth.signUp(signUpParams);
     if (error) throw error;
+
+    if (data.user) {
+      await auditLogApi.log({
+        action: "User registered",
+        resource_type: "user",
+        resource_id: data.user.id,
+        admin_email: data.user.email || email || phone || "System",
+        admin_id: data.user.id,
+      });
+    }
+
     return data;
   },
 
@@ -1788,6 +1870,17 @@ export const authApi = {
     const formatted = phone.startsWith("+") ? phone : `+91${phone.replace(/\D/g, "")}`;
     const { data, error } = await supabase.auth.verifyOtp({ phone: formatted, token, type: "sms" });
     if (error) throw error;
+
+    if (data.user) {
+      await auditLogApi.log({
+        action: "User logged in (OTP)",
+        resource_type: "user",
+        resource_id: data.user.id,
+        admin_email: data.user.email || formatted,
+        admin_id: data.user.id,
+      });
+    }
+
     return data;
   },
 
@@ -1801,12 +1894,34 @@ export const authApi = {
   async updatePassword(password: string) {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user) {
+      await auditLogApi.log({
+        action: "Updated password",
+        resource_type: "user",
+        resource_id: session.user.id,
+      });
+    }
   },
 
   async resetPassword({ token, password }: { token: string; password?: string }) {
     if (password) {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        await auditLogApi.log({
+          action: "Reset password",
+          resource_type: "user",
+          resource_id: session.user.id,
+        });
+      }
     }
   },
 
@@ -1829,11 +1944,33 @@ export const authApi = {
       .update({ ...data, updated_at: new Date().toISOString() })
       .eq("id", user.id);
     if (error) throw error;
+
+    await auditLogApi.log({
+      action: "Updated profile",
+      resource_type: "user",
+      resource_id: user.id,
+    });
   },
 
   async logout() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const email = session?.user?.email || "Unknown";
+    const userId = session?.user?.id || null;
+
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+
+    if (userId) {
+      await auditLogApi.log({
+        action: "User logged out",
+        resource_type: "user",
+        resource_id: userId,
+        admin_email: email,
+        admin_id: userId,
+      });
+    }
   },
 };
 

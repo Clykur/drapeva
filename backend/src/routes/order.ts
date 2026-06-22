@@ -234,10 +234,22 @@ router.post(
 router.post(
   "/verify-payment",
   authenticateJWT,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const { orderId, razorpayPaymentId, razorpayOrderId, signature, stripeSessionId } = req.body;
 
     try {
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+      });
+
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      if (order.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Access denied: Order ownership mismatch" });
+      }
+
       let success = false;
       let transactionId = "";
       let method = "";
@@ -258,7 +270,7 @@ router.post(
       }
 
       if (success) {
-        const order = await prisma.order.update({
+        const updatedOrder = await prisma.order.update({
           where: { id: orderId },
           data: { status: "PROCESSING" },
         });
@@ -270,13 +282,13 @@ router.post(
             method,
             status: "COMPLETED",
             transactionId,
-            amount: order.total,
+            amount: updatedOrder.total,
           },
         });
 
         // Send order emails & messages
-        await EmailService.sendOrderConfirmation(order.email, order.name, order.id, order.total);
-        await WhatsAppService.sendOrderUpdate(order.phone, order.id, "PROCESSING");
+        await EmailService.sendOrderConfirmation(updatedOrder.email, updatedOrder.name, updatedOrder.id, updatedOrder.total);
+        await WhatsAppService.sendOrderUpdate(updatedOrder.phone, updatedOrder.id, "PROCESSING");
 
         res.json({ success: true, message: "Payment verified successfully" });
       } else {

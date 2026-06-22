@@ -109,7 +109,10 @@ export default function AdminCategories() {
     >
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4">
-          <div className="w-full max-w-lg bg-background border border-border max-h-[90vh] overflow-y-auto">
+          <div
+            className="w-full max-w-lg bg-background border border-border max-h-[90vh] overflow-y-auto"
+            data-lenis-prevent="true"
+          >
             <div className="border-b border-border p-6 flex items-center justify-between">
               <h2 className="font-display text-xl">{editId ? "Edit Category" : "New Category"}</h2>
               <button

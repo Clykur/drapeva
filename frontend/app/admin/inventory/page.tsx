@@ -36,7 +36,7 @@ export default function AdminInventory() {
     const matchSearch =
       !search ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku || "").toLowerCase().includes(search.toLowerCase());
+      (p.product_code || "").toLowerCase().includes(search.toLowerCase());
     if (stockFilter === "out") return matchSearch && p.stock_quantity === 0;
     if (stockFilter === "low") return matchSearch && p.stock_quantity > 0 && p.stock_quantity <= 3;
     return matchSearch;
@@ -113,13 +113,13 @@ export default function AdminInventory() {
             <table className="w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-champagne/10">
-                  <th className="p-4 eyebrow text-[9px] w-12" />
-                  <th className="p-4 eyebrow text-[9px]">Product</th>
-                  <th className="p-4 eyebrow text-[9px]">SKU</th>
-                  <th className="p-4 eyebrow text-[9px]">Price</th>
-                  <th className="p-4 eyebrow text-[9px]">Current Stock</th>
-                  <th className="p-4 eyebrow text-[9px]">Status</th>
-                  <th className="p-4 eyebrow text-[9px]">Update Stock</th>
+                  <th className="p-4 eyebrow text-[12px] w-16 text-left" />
+                  <th className="p-4 eyebrow text-[12px] text-left">Product</th>
+                  <th className="p-4 eyebrow text-[12px] text-left">Product Code</th>
+                  <th className="p-4 eyebrow text-[12px] text-left">Price</th>
+                  <th className="p-4 eyebrow text-[12px] text-left">Current Stock</th>
+                  <th className="p-4 eyebrow text-[12px] text-left">Status</th>
+                  <th className="p-4 eyebrow text-[12px] text-left">Update Stock</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -132,21 +132,23 @@ export default function AdminInventory() {
                       key={p.id}
                       className={`hover:bg-champagne/5 ${stockStatus === "out" ? "bg-red-50/30" : stockStatus === "low" ? "bg-amber-50/30" : ""}`}
                     >
-                      <td className="p-4">
+                      <td className="p-4 w-16">
                         <img
                           src={p.image || "/media/placeholder-saree.jpg"}
                           className="h-10 w-8 object-cover border border-border"
                         />
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 text-left">
                         <p className="font-medium line-clamp-2 max-w-[200px]">{p.name}</p>
                         <p className="text-[10px] text-muted-foreground">{p.collection?.name}</p>
                       </td>
-                      <td className="p-4 font-mono text-xs text-muted-foreground">
-                        {p.sku || "—"}
+                      <td className="p-4 font-mono text-xs text-muted-foreground text-left">
+                        {p.product_code || "—"}
                       </td>
-                      <td className="p-4 font-semibold text-gold">{formatINR(p.price)}</td>
-                      <td className="p-4">
+                      <td className="p-4 font-semibold text-gold text-left">
+                        {formatINR(p.price)}
+                      </td>
+                      <td className="p-4 text-left">
                         <span
                           className={`text-base font-display ${stockStatus === "out" ? "text-destructive" : stockStatus === "low" ? "text-amber-600" : ""}`}
                         >
@@ -154,7 +156,7 @@ export default function AdminInventory() {
                         </span>
                         <span className="text-xs text-muted-foreground ml-1">units</span>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 text-left">
                         <span
                           className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${
                             stockStatus === "out"
@@ -171,7 +173,7 @@ export default function AdminInventory() {
                               : "In Stock"}
                         </span>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 text-left">
                         <div className="flex items-center gap-2">
                           <div className="flex items-center border border-border">
                             <button

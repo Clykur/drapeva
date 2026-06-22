@@ -17,6 +17,9 @@ const RESOURCE_COLORS: Record<string, string> = {
   coupon: "bg-amber-50 text-amber-700",
   review: "bg-rose-50 text-rose-700",
   banner: "bg-purple-50 text-purple-700",
+  ticket: "bg-teal-50 text-teal-700",
+  return: "bg-orange-50 text-orange-700",
+  address: "bg-cyan-50 text-cyan-700",
 };
 
 export default function AuditLogs() {
@@ -46,7 +49,7 @@ export default function AuditLogs() {
   ];
 
   const adminOptions = [
-    { value: "all", label: "All Admins" },
+    { value: "all", label: "All Users & Admins" },
     ...uniqueAdmins.map((a) => ({ value: a as string, label: a as string })),
   ];
 
@@ -65,7 +68,7 @@ export default function AuditLogs() {
   });
 
   return (
-    <AdminLayout title="Audit Logs" subtitle="Record of all admin actions">
+    <AdminLayout title="Audit Logs" subtitle="Record of all user and admin actions">
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -109,7 +112,7 @@ export default function AuditLogs() {
           <div className="grid grid-cols-[1fr_120px_200px_150px] gap-4 px-4 py-2 bg-champagne/10 text-[9px] uppercase tracking-widest text-muted-foreground">
             <span>Action</span>
             <span>Resource</span>
-            <span>Admin</span>
+            <span>Performed By</span>
             <span>Time</span>
           </div>
           {filtered.map((log: AuditLog) => (

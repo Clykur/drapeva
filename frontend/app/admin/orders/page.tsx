@@ -158,14 +158,14 @@ export default function AdminOrders() {
               <table className="w-full text-sm text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border bg-champagne/10">
-                    <th className="p-4 eyebrow text-[9px]">Order ID</th>
-                    <th className="p-4 eyebrow text-[9px]">Customer</th>
-                    <th className="p-4 eyebrow text-[9px]">Items</th>
-                    <th className="p-4 eyebrow text-[9px]">Total</th>
-                    <th className="p-4 eyebrow text-[9px]">Status</th>
-                    <th className="p-4 eyebrow text-[9px]">Order Date</th>
-                    <th className="p-4 eyebrow text-[9px]">Delivery Date</th>
-                    <th className="p-4 eyebrow text-[9px] text-right">Actions</th>
+                    <th className="p-4 eyebrow text-[12px]">Order ID</th>
+                    <th className="p-4 eyebrow text-[12px]">Customer</th>
+                    <th className="p-4 eyebrow text-[12px]">Items</th>
+                    <th className="p-4 eyebrow text-[12px]">Total</th>
+                    <th className="p-4 eyebrow text-[12px]">Status</th>
+                    <th className="p-4 eyebrow text-[12px]">Order Date</th>
+                    <th className="p-4 eyebrow text-[12px]">Delivery Date</th>
+                    <th className="p-4 eyebrow text-[12px] text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

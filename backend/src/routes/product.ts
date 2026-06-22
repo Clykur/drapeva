@@ -317,6 +317,8 @@ router.delete(
   },
 );
 
+import { escapeHTML } from "../utils/sanitize.js";
+
 // 8. Submit Review (Customer Only)
 router.post(
   "/:id/reviews",
@@ -337,8 +339,8 @@ router.post(
           userId: reqAny.user!.id,
           productId: id,
           rating,
-          title,
-          comment,
+          title: title ? escapeHTML(title) : null,
+          comment: comment ? escapeHTML(comment) : null,
           isApproved: false, // Moderation required
         },
       });

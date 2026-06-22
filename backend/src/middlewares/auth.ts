@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "super-secret-luxury-token-key-2026";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is missing");
+}
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -18,14 +21,19 @@ export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: 
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split(" ")[1];
 
-    jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
-      if (err) {
-        return res.status(403).json({ error: "Invalid or expired token" });
-      }
+    jwt.verify(
+      token,
+      JWT_SECRET!,
+      { audience: "drapeva-app", issuer: "drapeva-api" },
+      (err: any, decoded: any) => {
+        if (err) {
+          return res.status(403).json({ error: "Invalid or expired token" });
+        }
 
-      reqAny.user = decoded as { id: string; email: string; role: "CUSTOMER" | "ADMIN" };
-      next();
-    });
+        reqAny.user = decoded as { id: string; email: string; role: "CUSTOMER" | "ADMIN" };
+        next();
+      }
+    );
   } else {
     res.status(401).json({ error: "Authorization token required" });
   }

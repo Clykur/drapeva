@@ -102,6 +102,26 @@ router.post("/verify", authenticateSupabase, async (req: any, res: Response) => 
       return res.status(400).json({ error: "Missing required verification details" });
     }
 
+    const client = await getSupabaseClient();
+    if (!client) {
+      return res.status(500).json({ error: "Supabase client not initialized" });
+    }
+
+    // Fetch order to verify ownership (BOLA check)
+    const { data: orderData, error: fetchError } = await client
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .single();
+
+    if (fetchError || !orderData) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (orderData.user_id !== req.user.id && req.user.role !== "ADMIN" && orderData.user_id !== null) {
+      return res.status(403).json({ error: "Unauthorized order access" });
+    }
+
     // Verify signature
     const success = PaymentService.verifyRazorpaySignature(
       razorpayOrderId,
@@ -111,11 +131,6 @@ router.post("/verify", authenticateSupabase, async (req: any, res: Response) => 
 
     if (!success) {
       return res.status(400).json({ error: "Payment verification failed: signature mismatch" });
-    }
-
-    const client = await getSupabaseClient();
-    if (!client) {
-      return res.status(500).json({ error: "Supabase client not initialized" });
     }
 
     // Update order status in Supabase

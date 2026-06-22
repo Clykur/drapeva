@@ -282,7 +282,7 @@ function AdminProductsContent() {
         ) : (
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 bg-foreground text-background px-5 py-2.5 text-xs uppercase tracking-widest hover:bg-gold hover:text-gold-foreground transition-colors"
+            className="inline-flex items-center gap-2 border text-black px-5 py-2.5 text-xs uppercase tracking-widest transition-colors"
           >
             <Plus className="h-4 w-4" /> Add Product
           </button>
@@ -677,7 +677,6 @@ function AdminProductsContent() {
               ]}
               className="w-[180px]"
             />
-            <p className="text-sm text-muted-foreground ml-auto">{filtered.length} products</p>
           </div>
 
           {isLoading ? (
@@ -704,13 +703,15 @@ function AdminProductsContent() {
                 <table className="w-full text-sm text-left border-collapse">
                   <thead>
                     <tr className="border-b border-border bg-champagne/10">
-                      <th className="p-4 eyebrow text-[9px] w-12" />
-                      <th className="p-4 eyebrow text-[9px]">Product</th>
-                      <th className="p-4 eyebrow text-[9px]">Fabric / Occasion</th>
-                      <th className="p-4 eyebrow text-[9px]">Price</th>
-                      <th className="p-4 eyebrow text-[9px]">Stock</th>
-                      <th className="p-4 eyebrow text-[9px]">Status</th>
-                      <th className="p-4 eyebrow text-[9px] text-right">Actions</th>
+                      <div className="flex items-center gap-4 p-4">
+                        <th className="eyebrow text-[12px]">Product</th>
+                        <p className="text-sm text-muted-foreground">{filtered.length} products</p>
+                      </div>
+                      <th className="p-4 eyebrow text-[12px]">Fabric / Occasion</th>
+                      <th className="p-4 eyebrow text-[12px]">Price</th>
+                      <th className="p-4 eyebrow text-[12px]">Stock</th>
+                      <th className="p-4 eyebrow text-[12px]">Status</th>
+                      <th className="p-4 eyebrow text-[12px] text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
