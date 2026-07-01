@@ -151,7 +151,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-  // 5. Create Product (Admin Only)
+// 5. Create Product (Admin Only)
 router.post(
   "/",
   authenticateJWT,
