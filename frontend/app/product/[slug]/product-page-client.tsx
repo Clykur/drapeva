@@ -159,7 +159,7 @@ Thank you!`);
             name: product.name,
             image: dynamicGallery,
             description: product.description,
-            sku: product.sku || product.id,
+            sku: product.product_code || product.id,
             offers: {
               "@type": "Offer",
               priceCurrency: "INR",
@@ -274,11 +274,6 @@ Thank you!`);
                   {formatINR(product.price)}
                 </span>
               )}
-              {product.compare_at && !product.sale_price && (
-                <span className="text-sm text-muted-foreground line-through font-medium">
-                  {formatINR(product.compare_at)}
-                </span>
-              )}
             </div>
 
             {!product.inStock && (
@@ -383,18 +378,26 @@ Thank you!`);
                 title: "Details",
                 content: (
                   <ul className="space-y-2.5 text-xs text-muted-foreground font-medium">
-                    {product.details.map((d: string, i: number) => (
-                      <li key={i} className="flex items-start gap-1">
-                        <span className="text-gold shrink-0">◆</span>
-                        <span>{d}</span>
-                      </li>
-                    ))}
-                    {product.details.length === 0 && (
+                    <li className="flex items-start gap-1">
+                      <span className="text-gold shrink-0">◆</span>
+                      <span>Hand-woven with the finest craftsmanship by master artisans.</span>
+                    </li>
+                    <li className="flex items-start gap-1">
+                      <span className="text-gold shrink-0">◆</span>
+                      <span>Fabric: {product.fabric || "Premium Silk"}</span>
+                    </li>
+                    {product.color && (
                       <li className="flex items-start gap-1">
                         <span className="text-gold shrink-0">◆</span>
-                        <span>Hand-woven with the finest craftsmanship.</span>
+                        <span>Colour: {product.color}</span>
                       </li>
                     )}
+                    <li className="flex items-start gap-1">
+                      <span className="text-gold shrink-0">◆</span>
+                      <span>
+                        Dry clean only. Store in a cool, dry place away from direct sunlight.
+                      </span>
+                    </li>
                   </ul>
                 ),
               },

@@ -45,7 +45,7 @@ export default function ProductsAnalytics() {
 
   const topProducts = productPerformance.slice(0, 5);
   const worstProducts = [...productPerformance]
-    .filter((p) => p.status === "published" && p.units === 0)
+    .filter((p) => p.inStock && p.units === 0)
     .slice(0, 5);
   const lowStockProducts = productPerformance.filter(
     (p) => p.stock_quantity <= 5 && p.stock_quantity > 0,
@@ -69,7 +69,7 @@ export default function ProductsAnalytics() {
             Active Products
           </p>
           <p className="font-display text-2xl mt-2">
-            {productPerformance.filter((p) => p.status === "published").length}
+            {productPerformance.filter((p) => p.inStock).length}
           </p>
         </div>
         <div className="border border-amber-200 bg-amber-50 p-5 hover:border-amber-300 transition-colors">

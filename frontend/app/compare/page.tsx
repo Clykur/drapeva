@@ -149,25 +149,23 @@ export default function CompareProducts() {
                   </tr>
                   <tr className="border-b border-border">
                     <td className="p-4 font-semibold border-r border-border bg-champagne/5">
-                      Occasion
+                      Colour
                     </td>
                     {productsToCompare.map((p) => (
                       <td key={p.id} className="p-4 border-r border-border last:border-r-0">
-                        {p.occasion}
+                        {p.color || "—"}
                       </td>
                     ))}
                   </tr>
                   <tr>
                     <td className="p-4 font-semibold border-r border-border bg-champagne/5">
-                      Craft Details
+                      Craftsmanship
                     </td>
                     {productsToCompare.map((p) => (
                       <td key={p.id} className="p-4 border-r border-border last:border-r-0">
-                        <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
-                          {(p.details || []).map((d) => (
-                            <li key={d}>{d}</li>
-                          ))}
-                        </ul>
+                        <span className="text-xs text-muted-foreground">
+                          Hand-woven with finest craftsmanship. Dry clean only.
+                        </span>
                       </td>
                     ))}
                   </tr>

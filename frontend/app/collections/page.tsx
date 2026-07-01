@@ -125,10 +125,8 @@ function ShopContent() {
     queryFn: () =>
       productsApi.list({
         category,
-        collection,
+        collection: collection || undefined,
         fabric: selectedFabrics.length === 1 ? selectedFabrics[0] : fabricParam || undefined,
-        occasion:
-          selectedOccasions.length === 1 ? selectedOccasions[0] : occasionParam || undefined,
         search: searchParam,
         sort: sort === "bestsellers" ? "featured" : sort,
       }),
@@ -153,13 +151,7 @@ function ShopContent() {
     let list = [...allProducts];
 
     if (collection === "bestsellers" || sort === "bestsellers") {
-      list = list.filter((p) => {
-        const hasTag = (p.tags || []).some((t) => {
-          const normalized = t.toLowerCase().replace(/\s+/g, "");
-          return normalized === "bestseller" || normalized === "bestsellers";
-        });
-        return hasTag || p.is_bestseller;
-      });
+      list = list.filter((p) => p.is_bestseller);
     }
 
     if (selectedFabrics.length) {
@@ -169,7 +161,9 @@ function ShopContent() {
     }
     if (selectedOccasions.length) {
       list = list.filter((p) =>
-        selectedOccasions.some((o) => (p.occasion || "").toLowerCase() === o.toLowerCase()),
+        selectedOccasions.some((o) =>
+          (p.collection?.slug || "").toLowerCase().includes(o.toLowerCase()),
+        ),
       );
     }
     if (selectedColors.length) {

@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, usePathname, useSearchParams, useParams } from "next/navigation";
-import { useState, useEffect, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -10,74 +9,41 @@ import { ImageUploader } from "@/components/admin/image-uploader";
 import { Pagination } from "@/components/pagination";
 import { productsApi, categoriesApi, collectionsApi } from "@/lib/api";
 import { formatINR } from "@/lib/types";
-import type { Product, ProductFormData, Category, Collection, ProductStatus } from "@/lib/types";
-import { Select } from "@/components/select";
-import { Combobox, ComboboxOption } from "@/components/combobox";
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Copy,
-  Eye,
-  EyeOff,
-  Package,
-  ChevronDown,
-  X,
-  Filter,
-} from "lucide-react";
+import type { Product, ProductFormData, Category, Collection } from "@/lib/types";
+import { Combobox } from "@/components/combobox";
+import { Plus, Search, Edit, Trash2, Copy, Package } from "lucide-react";
 
+// ── Fabric constants ──────────────────────────────────────────────────────────
 const FABRICS = [
-  "Kanjivaram",
-  "Banarasi",
-  "Silk",
-  "Organza",
-  "Chiffon",
-  "Linen",
-  "Cotton",
-  "Designer",
-  "Handloom",
-  "Contemporary",
+  { label: "Kanjivaram Silk", value: "Kanjivaram Silk" },
+  { label: "Mysore Crepe Silk", value: "Mysore Crepe Silk" },
+  { label: "Khadi Cotton Silk", value: "Khadi Cotton Silk" },
+  { label: "Banarasi Silk", value: "Banarasi Silk" },
+  { label: "Organza", value: "Organza" },
+  { label: "Chiffon", value: "Chiffon" },
+  { label: "Cotton", value: "Cotton" },
+  { label: "Linen", value: "Linen" },
+  { label: "Designer Silk", value: "Designer Silk" },
+  { label: "Chanderi Silk", value: "Chanderi Silk" },
 ];
-const WEAVES = [
-  "Kanjivaram",
-  "Banarasi",
-  "Jamdani",
-  "Patola",
-  "Chanderi",
-  "Chikankari",
-  "Ikat",
-  "Paithani",
-  "None",
-];
-const OCCASIONS = ["Bridal", "Festive", "Reception", "Casual", "Formal"];
-const BADGE_OPTIONS = ["", "New", "Bestseller", "Limited"];
 
+// ── Empty form factory ────────────────────────────────────────────────────────
 const emptyForm = (): ProductFormData => ({
   name: "",
   slug: "",
-  sku: "",
   description: "",
   price: 0,
   sale_price: null,
-  compare_at: null,
   category_id: "",
   collection_id: "",
-  fabric: "Silk",
+  fabric: "",
   color: "",
-  occasion: "Festive",
-  tags: [],
-  details: [],
   stock_quantity: 0,
   is_featured: false,
   is_bestseller: false,
   is_new_arrival: false,
-  video_url: "",
   seo_title: "",
   seo_description: "",
-  status: "draft",
-  weave: "None",
-  badge: "",
   images: [],
 });
 
@@ -88,6 +54,7 @@ function slugify(s: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
 function AdminProductsContent() {
   const qc = useQueryClient();
   const router = useRouter();
@@ -97,12 +64,11 @@ function AdminProductsContent() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingCode, setEditingCode] = useState<string>("");
   const [form, setForm] = useState<ProductFormData>(emptyForm());
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ProductStatus | "all">("all");
-  const [detailInput, setDetailInput] = useState("");
-  const [tagInput, setTagInput] = useState("");
 
+  // ── Queries ────────────────────────────────────────────────────────────────
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["admin-products"],
     queryFn: productsApi.adminList,
@@ -116,6 +82,7 @@ function AdminProductsContent() {
     queryFn: collectionsApi.adminList,
   });
 
+  // ── Mutations ──────────────────────────────────────────────────────────────
   const createMut = useMutation({
     mutationFn: (data: ProductFormData) => productsApi.create(data),
     onSuccess: () => {
@@ -154,46 +121,31 @@ function AdminProductsContent() {
     },
   });
 
-  const toggleStatusMut = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: ProductStatus }) =>
-      productsApi.update(id, { status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-products"] }),
-  });
-
+  // ── Helpers ────────────────────────────────────────────────────────────────
   const resetForm = () => {
     setForm(emptyForm());
     setEditingId(null);
+    setEditingCode("");
     setShowForm(false);
-    setDetailInput("");
-    setTagInput("");
   };
 
   const startEdit = (p: Product) => {
     setForm({
       name: p.name,
       slug: p.slug,
-      sku: p.sku || "",
       description: p.description,
       price: p.price,
       sale_price: p.sale_price,
-      compare_at: p.compare_at,
       category_id: p.category_id || "",
       collection_id: p.collection_id || "",
-      fabric: p.fabric || "Silk",
+      fabric: p.fabric || "",
       color: p.color || "",
-      occasion: p.occasion || "Festive",
-      tags: p.tags || [],
-      details: p.details || [],
       stock_quantity: p.stock_quantity,
       is_featured: p.is_featured,
       is_bestseller: p.is_bestseller,
       is_new_arrival: p.is_new_arrival,
-      video_url: p.video_url || "",
       seo_title: p.seo_title || "",
       seo_description: p.seo_description || "",
-      status: p.status,
-      weave: p.weave || "None",
-      badge: p.badge || "",
       images: p.images.map((i) => ({
         url: i.url,
         alt_text: i.alt_text || "",
@@ -203,6 +155,7 @@ function AdminProductsContent() {
       })),
     });
     setEditingId(p.id);
+    setEditingCode(p.product_code || "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -212,22 +165,27 @@ function AdminProductsContent() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name) return toast.error("Product name is required");
+    if (!form.name.trim()) return toast.error("Product name is required");
+    if (!form.description.trim()) return toast.error("Description is required");
     if (form.price <= 0) return toast.error("Price must be greater than 0");
     if (form.images.some((i) => i.uploading))
       return toast.error("Please wait for images to finish uploading");
+    if (form.images.length === 0) return toast.error("At least one product image is required");
     const data = { ...form, slug: form.slug || slugify(form.name) };
     if (editingId) updateMut.mutate({ id: editingId, data });
     else createMut.mutate(data);
   };
 
+  // ── Filtering ──────────────────────────────────────────────────────────────
   const filtered = (products || []).filter((p: Product) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku?.toLowerCase().includes(search.toLowerCase()) ||
-      p.product_code?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      (p.product_code || "").toLowerCase().includes(q) ||
+      (p.fabric || "").toLowerCase().includes(q) ||
+      (p.color || "").toLowerCase().includes(q)
+    );
   });
 
   const itemsPerPage = 10;
@@ -242,13 +200,7 @@ function AdminProductsContent() {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const statusBadge = (status: ProductStatus) =>
-    ({
-      draft: "bg-amber-50 text-amber-700 border border-amber-200",
-      published: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-      archived: "bg-muted text-muted-foreground border border-border",
-    })[status];
-
+  // ── Form Actions bar ───────────────────────────────────────────────────────
   const formActions = (
     <div className="flex gap-3">
       <button
@@ -267,22 +219,29 @@ function AdminProductsContent() {
           ? "Saving..."
           : editingId
             ? "Update Product"
-            : "Publish Product"}
+            : "Save Product"}
       </button>
     </div>
   );
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <AdminLayout
       title={showForm ? (editingId ? "Edit Product" : "New Product") : "Products"}
-      subtitle={showForm ? "Fill in the details below" : `${products.length} total products`}
+      subtitle={
+        showForm
+          ? editingCode
+            ? `Product ID: ${editingCode}`
+            : "Product ID will be generated automatically"
+          : `${products.length} total products`
+      }
       actions={
         showForm ? (
           formActions
         ) : (
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 border text-black px-5 py-2.5 text-xs uppercase tracking-widest transition-colors"
+            className="inline-flex items-center gap-2 border text-black px-5 py-2.5 text-xs uppercase tracking-widest transition-colors hover:bg-muted"
           >
             <Plus className="h-4 w-4" /> Add Product
           </button>
@@ -290,19 +249,15 @@ function AdminProductsContent() {
       }
     >
       {showForm ? (
-        /* ── PRODUCT FORM ── */
-        <form onSubmit={handleSubmit} className="space-y-10 w-full">
-          <h2 className="text-xl font-display tracking-widest text-foreground">
-            {editingId
-              ? form.product_code
-                ? `Edit Product (${form.product_code})`
-                : "Edit Product"
-              : "Add New Product"}
-          </h2>
-          {/* Basic Info */}
-          <Section title="Basic Information">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <div className="lg:col-span-2">
+        /* ══════════════════════════════════════════════
+           PRODUCT FORM
+           ══════════════════════════════════════════════ */
+        <form onSubmit={handleSubmit} className="space-y-8 w-full max-w-5xl">
+          {/* ── Product Information ── */}
+          <Section title="Product Information">
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Product Name */}
+              <div className="md:col-span-2">
                 <Field label="Product Name *">
                   <input
                     value={form.name}
@@ -316,15 +271,25 @@ function AdminProductsContent() {
                   />
                 </Field>
               </div>
-              <Field label="SKU">
+
+              {/* Product ID — read-only */}
+              <Field label="Product ID (Auto Generated)">
                 <input
-                  value={form.sku}
-                  onChange={(e) => setField("sku", e.target.value)}
-                  className={inputCls}
-                  placeholder="SKU-0001"
+                  value={editingCode || "Will be generated on save"}
+                  readOnly
+                  disabled
+                  className={inputCls + " cursor-not-allowed opacity-60 font-mono text-xs"}
                 />
+                {!editingCode && (
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    Format: DE-&#123;FABRIC&#125;-&#123;COLOR&#125;-&#123;0001&#125; e.g.
+                    DE-KCS-RED-0001
+                  </p>
+                )}
               </Field>
-              <Field label="Slug">
+
+              {/* Slug */}
+              <Field label="Slug (Auto-generated, editable)">
                 <input
                   value={form.slug}
                   onChange={(e) => setField("slug", e.target.value)}
@@ -332,35 +297,42 @@ function AdminProductsContent() {
                   placeholder="auto-generated-from-name"
                 />
               </Field>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-6">
-              <div className="lg:col-span-3">
+
+              {/* Description */}
+              <div className="md:col-span-2">
                 <Field label="Description *">
                   <textarea
                     value={form.description}
                     onChange={(e) => setField("description", e.target.value)}
-                    rows={4}
+                    rows={5}
                     className={inputCls + " resize-y"}
-                    placeholder="An exquisite..."
+                    placeholder="An exquisite saree handwoven by master artisans..."
                     required
                   />
                 </Field>
               </div>
-              <Field label="Badge">
-                <Combobox
-                  value={form.badge}
-                  onChange={(val) => setField("badge", val)}
-                  options={BADGE_OPTIONS.map((b) => ({ label: b || "None", value: b }))}
-                  placeholder="Select badge..."
-                  className="w-full"
-                />
-              </Field>
             </div>
           </Section>
 
-          {/* Pricing & Stock */}
+          {/* ── Images ── */}
+          <Section title="Images *">
+            <ImageUploader
+              images={form.images}
+              onChange={(imgs) => setField("images", imgs as any)}
+              productId={editingId || "new"}
+              maxImages={10}
+            />
+            {form.images.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Upload at least one image. The first image marked as featured will be the primary
+                display image.
+              </p>
+            )}
+          </Section>
+
+          {/* ── Pricing & Inventory ── */}
           <Section title="Pricing & Inventory">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 sm:grid-cols-3">
               <Field label="Price (₹) *">
                 <input
                   type="number"
@@ -375,20 +347,12 @@ function AdminProductsContent() {
               <Field label="Sale Price (₹)">
                 <input
                   type="number"
-                  value={form.sale_price || ""}
-                  onChange={(e) => setField("sale_price", parseFloat(e.target.value) || null)}
+                  value={form.sale_price ?? ""}
+                  onChange={(e) =>
+                    setField("sale_price", e.target.value ? parseFloat(e.target.value) : null)
+                  }
                   className={inputCls}
-                  placeholder="38000"
-                  min={0}
-                />
-              </Field>
-              <Field label="Compare At (₹)">
-                <input
-                  type="number"
-                  value={form.compare_at || ""}
-                  onChange={(e) => setField("compare_at", parseFloat(e.target.value) || null)}
-                  className={inputCls}
-                  placeholder="52000"
+                  placeholder="38000 (optional)"
                   min={0}
                 />
               </Field>
@@ -405,7 +369,7 @@ function AdminProductsContent() {
             </div>
           </Section>
 
-          {/* Classification */}
+          {/* ── Classification ── */}
           <Section title="Classification">
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Category">
@@ -426,43 +390,12 @@ function AdminProductsContent() {
                   className="w-full"
                 />
               </Field>
-              <Field label="Status">
-                <Combobox
-                  value={form.status}
-                  onChange={(val) => setField("status", val as ProductStatus)}
-                  options={[
-                    { label: "Draft", value: "draft" },
-                    { label: "Published", value: "published" },
-                    { label: "Archived", value: "archived" },
-                  ]}
-                  placeholder="Select status..."
-                  className="w-full"
-                />
-              </Field>
-              <Field label="Fabric Type">
+              <Field label="Fabric">
                 <Combobox
                   value={form.fabric}
                   onChange={(val) => setField("fabric", val)}
-                  options={FABRICS.map((f) => ({ label: f, value: f }))}
+                  options={FABRICS}
                   placeholder="Select fabric..."
-                  className="w-full"
-                />
-              </Field>
-              <Field label="Weave Type">
-                <Combobox
-                  value={form.weave}
-                  onChange={(val) => setField("weave", val)}
-                  options={WEAVES.map((w) => ({ label: w, value: w }))}
-                  placeholder="Select weave..."
-                  className="w-full"
-                />
-              </Field>
-              <Field label="Occasion">
-                <Combobox
-                  value={form.occasion}
-                  onChange={(val) => setField("occasion", val)}
-                  options={OCCASIONS.map((o) => ({ label: o, value: o }))}
-                  placeholder="Select occasion..."
                   className="w-full"
                 />
               </Field>
@@ -477,9 +410,9 @@ function AdminProductsContent() {
             </div>
           </Section>
 
-          {/* Flags */}
+          {/* ── Product Flags ── */}
           <Section title="Product Flags">
-            <div className="flex flex-wrap gap-6">
+            <div className="flex flex-wrap gap-8">
               {(
                 [
                   ["is_featured", "Featured on Homepage"],
@@ -490,10 +423,12 @@ function AdminProductsContent() {
                 <label key={k} className="flex items-center gap-3 cursor-pointer select-none">
                   <div
                     onClick={() => setField(k, !form[k] as any)}
-                    className={`relative h-5 w-9 rounded-full transition-colors ${form[k] ? "bg-gold" : "bg-border"}`}
+                    className={`relative h-5 w-9 rounded-full transition-colors ${form[k] ? "bg-gold" : "bg-border"
+                      }`}
                   >
                     <div
-                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form[k] ? "translate-x-4" : "translate-x-0.5"}`}
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form[k] ? "translate-x-4" : "translate-x-0.5"
+                        }`}
                     />
                   </div>
                   <span className="text-sm">{label}</span>
@@ -502,128 +437,9 @@ function AdminProductsContent() {
             </div>
           </Section>
 
-          {/* Product Details */}
-          <Section title="Product Details">
-            <div className="flex gap-2">
-              <input
-                value={detailInput}
-                onChange={(e) => setDetailInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (detailInput.trim()) {
-                      setField("details", [...form.details, detailInput.trim()]);
-                      setDetailInput("");
-                    }
-                  }
-                }}
-                className={inputCls + " flex-1"}
-                placeholder="Add a detail (press Enter)"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (detailInput.trim()) {
-                    setField("details", [...form.details, detailInput.trim()]);
-                    setDetailInput("");
-                  }
-                }}
-                className="border border-border px-4 py-2 text-xs hover:bg-muted transition-colors"
-              >
-                Add
-              </button>
-            </div>
-            {form.details.length > 0 && (
-              <ul className="mt-3 space-y-2">
-                {form.details.map((d, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-gold shrink-0" />
-                    <span className="flex-1">{d}</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setField(
-                          "details",
-                          form.details.filter((_, j) => j !== i),
-                        )
-                      }
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
-
-          {/* Tags */}
-          <Section title="Tags">
-            <div className="flex gap-2 flex-wrap mb-2">
-              {form.tags.map((t, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 bg-champagne/40 border border-border px-2 py-1 text-xs rounded"
-                >
-                  {t}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setField(
-                        "tags",
-                        form.tags.filter((_, j) => j !== i),
-                      )
-                    }
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (tagInput.trim()) {
-                      setField("tags", [...form.tags, tagInput.trim()]);
-                      setTagInput("");
-                    }
-                  }
-                }}
-                className={inputCls + " flex-1"}
-                placeholder="Add tag (press Enter)"
-              />
-            </div>
-          </Section>
-
-          {/* Images */}
-          <Section title="Product Images">
-            <ImageUploader
-              images={form.images}
-              onChange={(imgs) => setField("images", imgs as any)}
-              productId={editingId || "new"}
-              maxImages={10}
-            />
-          </Section>
-
-          {/* Video */}
-          <Section title="Product Video (optional)">
-            <Field label="Video URL">
-              <input
-                value={form.video_url}
-                onChange={(e) => setField("video_url", e.target.value)}
-                className={inputCls}
-                placeholder="https://..."
-              />
-            </Field>
-          </Section>
-
-          {/* SEO */}
+          {/* ── SEO & Meta ── */}
           <Section title="SEO & Meta">
-            <div className="grid gap-4">
+            <div className="grid gap-5">
               <Field label="SEO Title">
                 <input
                   value={form.seo_title}
@@ -651,31 +467,23 @@ function AdminProductsContent() {
               </Field>
             </div>
           </Section>
+
+          {/* Bottom submit */}
+          <div className="flex justify-end pb-10">{formActions}</div>
         </form>
       ) : (
-        /* ── PRODUCT LIST ── */
+        /* ══════════════════════════════════════════════
+           PRODUCT LIST
+           ══════════════════════════════════════════════ */
         <div className="space-y-5">
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, SKU, or Code..."
-                className="w-full border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-foreground"
-              />
-            </div>
-            <Combobox
-              value={statusFilter}
-              onChange={(val) => setStatusFilter(val as ProductStatus | "all")}
-              options={[
-                { label: "All Status", value: "all" },
-                { label: "Published", value: "published" },
-                { label: "Draft", value: "draft" },
-                { label: "Archived", value: "archived" },
-              ]}
-              className="w-[180px]"
+          {/* Search bar */}
+          <div className="relative max-w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, code, fabric, or color..."
+              className="w-full border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-foreground"
             />
           </div>
 
@@ -688,38 +496,42 @@ function AdminProductsContent() {
               <Package className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
               <p className="font-display text-xl">No products found</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Add your first product or adjust the filters.
+                {search ? "Try a different search term." : "Add your first product to get started."}
               </p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="mt-6 inline-flex items-center gap-2 bg-foreground text-background px-5 py-2.5 text-xs uppercase tracking-widest"
-              >
-                <Plus className="h-4 w-4" /> Add Product
-              </button>
+              {!search && (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="mt-6 inline-flex items-center gap-2 bg-foreground text-background px-5 py-2.5 text-xs uppercase tracking-widest"
+                >
+                  <Plus className="h-4 w-4" /> Add Product
+                </button>
+              )}
             </div>
           ) : (
             <>
+              {/* Count row */}
+              <p className="text-xs text-muted-foreground">
+                Showing {paginatedProducts.length} of {filtered.length} products
+              </p>
+
               <div className="overflow-x-auto border border-border hide-scrollbar">
                 <table className="w-full text-sm text-left border-collapse">
                   <thead>
                     <tr className="border-b border-border bg-champagne/10">
-                      <div className="flex items-center gap-4 p-4">
-                        <th className="eyebrow text-[12px]">Product</th>
-                        <p className="text-sm text-muted-foreground">{filtered.length} products</p>
-                      </div>
-                      <th className="p-4 eyebrow text-[12px]">Fabric / Occasion</th>
-                      <th className="p-4 eyebrow text-[12px]">Price</th>
-                      <th className="p-4 eyebrow text-[12px]">Stock</th>
-                      <th className="p-4 eyebrow text-[12px]">Status</th>
-                      <th className="p-4 eyebrow text-[12px] text-right">Actions</th>
+                      <th className="p-4 eyebrow text-[11px]">Product</th>
+                      <th className="p-4 eyebrow text-[11px]">Fabric / Color</th>
+                      <th className="p-4 eyebrow text-[11px]">Price</th>
+                      <th className="p-4 eyebrow text-[11px]">Stock</th>
+                      <th className="p-4 eyebrow text-[11px] text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {paginatedProducts.map((p) => (
+                    {paginatedProducts.map((p: Product) => (
                       <tr key={p.id} className="hover:bg-champagne/5 group">
+                        {/* Product cell */}
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 shrink-0 bg-muted overflow-hidden rounded-md border border-border">
+                            <div className="h-10 w-10 shrink-0 bg-muted overflow-hidden rounded-sm border border-border">
                               {p.images?.[0]?.url ? (
                                 <img
                                   src={p.images[0].url}
@@ -727,21 +539,20 @@ function AdminProductsContent() {
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground">
-                                  No img
+                                <div className="h-full w-full flex items-center justify-center">
+                                  <Package className="h-4 w-4 text-muted-foreground" />
                                 </div>
                               )}
                             </div>
                             <div>
                               <p
-                                className="font-semibold text-sm max-w-[200px] truncate"
+                                className="font-semibold text-sm max-w-[220px] truncate"
                                 title={p.name}
                               >
                                 {p.name}
                               </p>
                               <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
-                                {p.product_code || p.id.slice(0, 8)}{" "}
-                                {p.sku ? `• SKU: ${p.sku}` : ""}
+                                {p.product_code || p.id.slice(0, 8)}
                               </p>
                               <div className="flex gap-1 mt-1">
                                 {p.is_featured && (
@@ -759,15 +570,23 @@ function AdminProductsContent() {
                                     New
                                   </span>
                                 )}
+                                {p.sale_price && (
+                                  <span className="text-[9px] bg-red-50 text-red-600 px-1 py-0.5 rounded">
+                                    Sale
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
                         </td>
+
+                        {/* Fabric / Color */}
                         <td className="p-4 text-muted-foreground text-xs">
-                          {p.fabric}
-                          <br />
-                          {p.occasion}
+                          <p>{p.fabric || "—"}</p>
+                          <p className="mt-0.5">{p.color || "—"}</p>
                         </td>
+
+                        {/* Price */}
                         <td className="p-4">
                           <p className="font-semibold text-gold">
                             {formatINR(p.sale_price || p.price)}
@@ -778,38 +597,24 @@ function AdminProductsContent() {
                             </p>
                           )}
                         </td>
+
+                        {/* Stock */}
                         <td className="p-4">
                           <span
-                            className={`text-xs font-medium ${p.stock_quantity === 0 ? "text-destructive" : p.stock_quantity <= 3 ? "text-amber-600" : "text-foreground"}`}
+                            className={`text-xs font-medium ${p.stock_quantity === 0
+                              ? "text-destructive"
+                              : p.stock_quantity <= 3
+                                ? "text-amber-600"
+                                : "text-foreground"
+                              }`}
                           >
                             {p.stock_quantity === 0 ? "Out of stock" : `${p.stock_quantity} units`}
                           </span>
                         </td>
-                        <td className="p-4">
-                          <span
-                            className={`inline-block px-2 py-0.5 text-[10px] uppercase tracking-wider rounded ${statusBadge(p.status)}`}
-                          >
-                            {p.status}
-                          </span>
-                        </td>
+
+                        {/* Actions */}
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() =>
-                                toggleStatusMut.mutate({
-                                  id: p.id,
-                                  status: p.status === "published" ? "draft" : "published",
-                                })
-                              }
-                              className="p-1.5 hover:text-gold transition-colors"
-                              title={p.status === "published" ? "Unpublish" : "Publish"}
-                            >
-                              {p.status === "published" ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </button>
                             <button
                               onClick={() => startEdit(p)}
                               className="p-1.5 hover:text-gold transition-colors"
@@ -817,10 +622,10 @@ function AdminProductsContent() {
                             >
                               <Edit className="h-4 w-4" />
                             </button>
-
                             <button
                               onClick={() => {
-                                if (confirm(`Delete "${p.name}"?`)) deleteMut.mutate(p.id);
+                                if (confirm(`Delete "${p.name}"? This cannot be undone.`))
+                                  deleteMut.mutate(p.id);
                               }}
                               className="p-1.5 hover:text-destructive transition-colors"
                               title="Delete"
@@ -834,6 +639,7 @@ function AdminProductsContent() {
                   </tbody>
                 </table>
               </div>
+
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -848,6 +654,7 @@ function AdminProductsContent() {
   );
 }
 
+// ── Page export ───────────────────────────────────────────────────────────────
 export default function AdminProducts() {
   return (
     <Suspense
@@ -862,6 +669,7 @@ export default function AdminProducts() {
   );
 }
 
+// ── Shared sub-components ─────────────────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="border border-border bg-background">
