@@ -194,10 +194,11 @@ Thank you!`);
                   setActive(i);
                   //  setView360(false);
                 }}
-                className={`aspect-[3/4] w-16 md:w-24 shrink-0 overflow-hidden border transition-all duration-300 snap-start ${active === i
-                  ? "border-gold ring-1 ring-gold"
-                  : "border-border/60 hover:border-foreground/50"
-                  }`}
+                className={`aspect-[3/4] w-16 md:w-24 shrink-0 overflow-hidden border transition-all duration-300 snap-start ${
+                  active === i
+                    ? "border-gold ring-1 ring-gold"
+                    : "border-border/60 hover:border-foreground/50"
+                }`}
               >
                 <img
                   src={img}
@@ -229,10 +230,7 @@ Thank you!`);
             ) : (
               <ProductZoom src={dynamicGallery[active] || product.image} alt={product.name} />
             )} */}
-            <ProductZoom
-              src={dynamicGallery[active] || product.image}
-              alt={product.name}
-            />
+            <ProductZoom src={dynamicGallery[active] || product.image} alt={product.name} />
           </div>
         </div>
 
@@ -254,8 +252,9 @@ Thank you!`);
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
-                    className={`h-3.5 w-3.5 ${i < Math.round(avgRating) ? "fill-yellow-400 text-yellow-400" : "text-border"
-                      }`}
+                    className={`h-3.5 w-3.5 ${
+                      i < Math.round(avgRating) ? "fill-yellow-400 text-yellow-400" : "text-border"
+                    }`}
                   />
                 ))}
               </div>
@@ -527,10 +526,11 @@ Thank you!`);
                             className="p-1 hover:scale-110 transition-transform duration-250"
                           >
                             <Star
-                              className={`h-5 w-5 ${starVal <= reviewRating
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "text-muted-foreground/30"
-                                }`}
+                              className={`h-5 w-5 ${
+                                starVal <= reviewRating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-muted-foreground/30"
+                              }`}
                             />
                           </button>
                         );
