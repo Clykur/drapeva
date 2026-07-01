@@ -10,7 +10,7 @@ import {
   ChevronDown,
   ArrowRight,
   ArrowLeft,
-  RotateCw,
+  // RotateCw,
   Star,
   CreditCard,
   Loader2,
@@ -23,7 +23,7 @@ import { productsApi, reviewsApi } from "@/lib/api";
 import { useShop } from "@/lib/store";
 import { ProductCard } from "@/components/product-card";
 import { ProductZoom } from "@/components/product-zoom";
-import { Product360Viewer } from "@/components/product-360-viewer";
+// import { Product360Viewer } from "@/components/product-360-viewer";
 import { useAuth } from "@/lib/auth-store";
 import { toast } from "sonner";
 
@@ -42,7 +42,7 @@ export default function ProductPageClient({ initialProduct, slug }: ProductPageC
   const isAuthenticated = useAuth((s) => s.isAuthenticated());
   const [active, setActive] = useState(0);
   const [openSection, setOpenSection] = useState<string | null>("details");
-  const [view360, setView360] = useState(false);
+  // const [view360, setView360] = useState(false);
 
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -132,7 +132,21 @@ export default function ProductPageClient({ initialProduct, slug }: ProductPageC
       `/login?redirect=${encodeURIComponent(pathname)}&message=${encodeURIComponent("Please sign in to continue shopping.")}`,
     );
   };
+  const whatsappMessage = encodeURIComponent(`Hello Drapeva,
 
+I'm interested in this saree and would like to know more.
+
+Product: ${product.name}
+Product Code: ${product.product_code}
+Price: ${formatINR(displayPrice)}
+
+Could you please share:
+• Availability
+• More photos/videos
+• Fabric details
+• Delivery timeline
+
+Thank you!`);
   return (
     <div className="pb-24 lg:pb-0">
       {/* Schema.org */}
@@ -178,13 +192,12 @@ export default function ProductPageClient({ initialProduct, slug }: ProductPageC
                 key={i}
                 onClick={() => {
                   setActive(i);
-                  setView360(false);
+                  //  setView360(false);
                 }}
-                className={`aspect-[3/4] w-16 md:w-24 shrink-0 overflow-hidden border transition-all duration-300 snap-start ${
-                  active === i && !view360
-                    ? "border-gold ring-1 ring-gold"
-                    : "border-border/60 hover:border-foreground/50"
-                }`}
+                className={`aspect-[3/4] w-16 md:w-24 shrink-0 overflow-hidden border transition-all duration-300 snap-start ${active === i
+                  ? "border-gold ring-1 ring-gold"
+                  : "border-border/60 hover:border-foreground/50"
+                  }`}
               >
                 <img
                   src={img}
@@ -196,27 +209,30 @@ export default function ProductPageClient({ initialProduct, slug }: ProductPageC
                 />
               </button>
             ))}
-            {dynamicGallery.length > 1 && (
+            {/* {dynamicGallery.length > 1 && (
               <button
                 onClick={() => setView360(true)}
-                className={`aspect-[3/4] w-16 md:w-24 shrink-0 flex flex-col items-center justify-center border text-[9px] uppercase tracking-wider transition-all duration-300 snap-start ${
-                  view360
-                    ? "border-gold bg-gold/10 text-gold"
-                    : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/50"
-                }`}
+                className={`aspect-[3/4] w-16 md:w-24 shrink-0 flex flex-col items-center justify-center border text-[9px] uppercase tracking-wider transition-all duration-300 snap-start ${view360
+                  ? "border-gold bg-gold/10 text-gold"
+                  : "border-border/60 text-muted-foreground hover:text-foreground hover:border-foreground/50"
+                  }`}
               >
                 <RotateCw className="h-4 w-4 mb-1" />
                 360°
               </button>
-            )}
+            )} */}
           </div>
           {/* Main Viewer */}
           <div className="order-1 aspect-[3/4] md:order-2 w-full">
-            {view360 ? (
+            {/* {view360 ? (
               <Product360Viewer images={dynamicGallery} />
             ) : (
               <ProductZoom src={dynamicGallery[active] || product.image} alt={product.name} />
-            )}
+            )} */}
+            <ProductZoom
+              src={dynamicGallery[active] || product.image}
+              alt={product.name}
+            />
           </div>
         </div>
 
@@ -238,9 +254,8 @@ export default function ProductPageClient({ initialProduct, slug }: ProductPageC
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
-                    className={`h-3.5 w-3.5 ${
-                      i < Math.round(avgRating) ? "fill-yellow-400 text-yellow-400" : "text-border"
-                    }`}
+                    className={`h-3.5 w-3.5 ${i < Math.round(avgRating) ? "fill-yellow-400 text-yellow-400" : "text-border"
+                      }`}
                   />
                 ))}
               </div>
@@ -344,17 +359,7 @@ export default function ProductPageClient({ initialProduct, slug }: ProductPageC
           </div>
 
           <a
-            href={`https://wa.me/918123045318?text=${encodeURIComponent(
-              `Hello *Drapeva*,
-
-I'm interested in the following saree:
-
-*Saree Name:* *${product.name}*
-
-*Product ID:* *${product.product_code}*
-
-Could you please share more details?`,
-            )}`}
+            href={`https://wa.me/918123045318?text=${whatsappMessage}`}
             target="_blank"
             rel="noreferrer"
             className="mt-4 inline-flex w-full items-center justify-center border border-[#25D366]/40 py-3.5 text-xs uppercase tracking-[0.25em] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all duration-300 font-semibold"
@@ -522,11 +527,10 @@ Could you please share more details?`,
                             className="p-1 hover:scale-110 transition-transform duration-250"
                           >
                             <Star
-                              className={`h-5 w-5 ${
-                                starVal <= reviewRating
-                                  ? "fill-yellow-400 text-yellow-400"
-                                  : "text-muted-foreground/30"
-                              }`}
+                              className={`h-5 w-5 ${starVal <= reviewRating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-muted-foreground/30"
+                                }`}
                             />
                           </button>
                         );
