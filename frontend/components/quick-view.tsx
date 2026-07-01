@@ -47,10 +47,10 @@ export function QuickView() {
           <p className="eyebrow">{quickView?.collection_id}</p>
           <h3 className="mt-2 font-display text-2xl md:text-3xl">{quickView.name}</h3>
           <div className="mt-2 flex items-baseline gap-3">
-            <span className="text-lg">{formatINR(quickView.price)}</span>
-            {quickView.compareAt && (
+            <span className="text-lg">{formatINR(quickView.sale_price || quickView.price)}</span>
+            {quickView.sale_price && (
               <span className="text-sm text-muted-foreground line-through">
-                {formatINR(quickView.compareAt)}
+                {formatINR(quickView.price)}
               </span>
             )}
           </div>

@@ -3,7 +3,6 @@
 // Generated from Supabase schema
 // ============================================================
 
-export type ProductStatus = "draft" | "published" | "archived";
 export type OrderStatus =
   | "pending"
   | "processing"
@@ -57,7 +56,8 @@ export interface Database {
       };
       products: {
         Row: DbProduct;
-        Insert: Omit<DbProduct, "id" | "created_at" | "updated_at">;
+        Insert: Omit<DbProduct, "id" | "created_at" | "updated_at" | "product_code"> &
+          Partial<Pick<DbProduct, "product_code">>;
         Update: Partial<Omit<DbProduct, "id" | "created_at">>;
       };
       product_images: {
@@ -221,7 +221,6 @@ export interface Database {
     Enums: {
       order_status: OrderStatus;
       discount_type: DiscountType;
-      product_status: ProductStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -311,38 +310,28 @@ export interface ProductImage {
 // Raw DB product row
 export interface DbProduct {
   id: string;
-  product_code?: string;
+  product_code: string;
   name: string;
   slug: string;
-  sku: string | null;
   description: string;
   price: number;
   sale_price: number | null;
-  compare_at: number | null;
   category_id: string | null;
   collection_id: string | null;
   fabric: string | null;
   color: string | null;
-  occasion: string | null;
-  tags: string[];
-  details: string[];
   stock_quantity: number;
   is_featured: boolean;
   is_bestseller: boolean;
   is_new_arrival: boolean;
-  video_url: string | null;
   seo_title: string | null;
   seo_description: string | null;
-  status: ProductStatus;
-  weave: string | null;
-  badge: string | null;
   created_at: string;
   updated_at: string;
 }
 
 // Full product with relations (for frontend display)
 export interface Product extends DbProduct {
-  sizes: any;
   images: ProductImage[];
   category: Category | null;
   collection: Collection | null;
@@ -350,7 +339,6 @@ export interface Product extends DbProduct {
   image: string; // primary image URL
   gallery: string[]; // all image URLs
   inStock: boolean;
-  compareAt: number | null; // alias for compare_at
   reviews?: { rating: number; is_approved: boolean }[];
 }
 
@@ -358,29 +346,19 @@ export interface Product extends DbProduct {
 export interface ProductFormData {
   name: string;
   slug: string;
-  sku: string;
   description: string;
   price: number;
   sale_price: number | null;
-  compare_at: number | null;
   category_id: string;
   collection_id: string;
   fabric: string;
   color: string;
-  occasion: string;
-  tags: string[];
-  product_code?: string;
-  details: string[];
   stock_quantity: number;
   is_featured: boolean;
   is_bestseller: boolean;
   is_new_arrival: boolean;
-  video_url: string;
   seo_title: string;
   seo_description: string;
-  status: ProductStatus;
-  weave: string;
-  badge: string;
   images: {
     uploading?: boolean;
     url: string;
@@ -631,7 +609,6 @@ export type FilterState = {
   category?: string;
   collection?: string;
   fabric?: string;
-  occasion?: string;
   color?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -667,28 +644,19 @@ export function normalizeProduct(
     product_code: p.product_code,
     name: p.name,
     slug: p.slug,
-    sku: p.sku,
     description: p.description,
     price: p.price,
     sale_price: p.sale_price,
-    compare_at: p.compare_at,
     category_id: p.category_id,
     collection_id: p.collection_id,
     fabric: p.fabric,
     color: p.color,
-    occasion: p.occasion,
-    tags: p.tags || [],
-    details: p.details || [],
     stock_quantity: p.stock_quantity,
     is_featured: p.is_featured,
     is_bestseller: p.is_bestseller,
     is_new_arrival: p.is_new_arrival,
-    video_url: p.video_url,
     seo_title: p.seo_title,
     seo_description: p.seo_description,
-    status: p.status,
-    weave: p.weave,
-    badge: p.badge,
     created_at: p.created_at,
     updated_at: p.updated_at,
 
@@ -698,8 +666,6 @@ export function normalizeProduct(
     image: featured?.url || "/media/placeholder-saree.jpg",
     gallery: images.sort((a, b) => a.sort_order - b.sort_order).map((i) => i.url),
     inStock: p.stock_quantity > 0,
-    compareAt: p.compare_at,
-    sizes: undefined,
     reviews: p.reviews,
   };
 }

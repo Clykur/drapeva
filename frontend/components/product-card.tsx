@@ -21,7 +21,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const isWished = wishlist.includes(product.id);
   const displayPrice = product.sale_price || product.price;
-  const originalPrice = product.sale_price ? product.price : product.compare_at || null;
+  const originalPrice = product.sale_price ? product.price : null;
   const cartItem = cart.find((c) => c.product.id === product.id);
   const qty = cartItem ? cartItem.qty : 0;
 
@@ -50,11 +50,11 @@ export function ProductCard({ product }: ProductCardProps) {
           />
         </Link>
 
-        {/* Badge */}
-        {(product.badge || product.is_new_arrival || product.is_bestseller) && (
+        {/* Badge — new arrival or bestseller */}
+        {(product.is_new_arrival || product.is_bestseller) && (
           <div className="absolute top-3 left-3">
             <span className="bg-gold text-gold-foreground px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] font-semibold">
-              {product.badge || (product.is_new_arrival ? "New" : "Best Seller")}
+              {product.is_new_arrival ? "New" : "Best Seller"}
             </span>
           </div>
         )}
