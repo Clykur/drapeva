@@ -40,7 +40,11 @@ export function SiteFooter() {
   if (footerType === "none") {
     return null;
   }
+  const whatsappMessage = encodeURIComponent(
+    "Hello Drapeva! I'm interested in your saree collection and would like to know more. Could you please assist me?",
+  );
 
+  const whatsappUrl = `https://wa.me/918123045318?text=${whatsappMessage}`;
   return (
     <footer className="mt-20 border-t-0 bg-ink text-background">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:py-20 lg:py-32">
@@ -182,9 +186,9 @@ export function SiteFooter() {
               </li>
               <li>
                 <a
-                  href="https://wa.me/919999999999"
+                  href={whatsappUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="group inline-flex items-center gap-3 text-sm font-light text-background/70 transition-colors hover:text-background"
                 >
                   <FaWhatsapp className="h-4 w-4 opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -215,7 +219,9 @@ export function SiteFooter() {
 
           <div className="flex flex-wrap items-center gap-8">
             <a
-              href="https://wa.me/918123045318"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-2 transition-colors hover:text-background"
             >
               <FaWhatsapp className="h-6 w-6" />
