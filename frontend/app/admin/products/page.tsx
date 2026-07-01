@@ -423,12 +423,14 @@ function AdminProductsContent() {
                 <label key={k} className="flex items-center gap-3 cursor-pointer select-none">
                   <div
                     onClick={() => setField(k, !form[k] as any)}
-                    className={`relative h-5 w-9 rounded-full transition-colors ${form[k] ? "bg-gold" : "bg-border"
-                      }`}
+                    className={`relative h-5 w-9 rounded-full transition-colors ${
+                      form[k] ? "bg-gold" : "bg-border"
+                    }`}
                   >
                     <div
-                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form[k] ? "translate-x-4" : "translate-x-0.5"
-                        }`}
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                        form[k] ? "translate-x-4" : "translate-x-0.5"
+                      }`}
                     />
                   </div>
                   <span className="text-sm">{label}</span>
@@ -601,12 +603,13 @@ function AdminProductsContent() {
                         {/* Stock */}
                         <td className="p-4">
                           <span
-                            className={`text-xs font-medium ${p.stock_quantity === 0
-                              ? "text-destructive"
-                              : p.stock_quantity <= 3
-                                ? "text-amber-600"
-                                : "text-foreground"
-                              }`}
+                            className={`text-xs font-medium ${
+                              p.stock_quantity === 0
+                                ? "text-destructive"
+                                : p.stock_quantity <= 3
+                                  ? "text-amber-600"
+                                  : "text-foreground"
+                            }`}
                           >
                             {p.stock_quantity === 0 ? "Out of stock" : `${p.stock_quantity} units`}
                           </span>
