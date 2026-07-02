@@ -363,7 +363,7 @@ Thank you!`);
 
           <div className="mt-8 grid gap-4 border-y border-border/60 py-6 text-xs text-muted-foreground sm:grid-cols-2">
             <p className="inline-flex items-center gap-2.5 font-medium">
-              <Truck className="h-4.5 w-4.5 text-gold shrink-0" /> Free shipping in India
+              <Truck className="h-4.5 w-4.5 text-gold shrink-0" /> Free shipping within 1,000 km
             </p>
             <p className="inline-flex items-center gap-2.5 font-medium">
               <Sparkles className="h-4.5 w-4.5 text-gold shrink-0" /> Hand-finished, made-to-order
@@ -407,9 +407,10 @@ Thank you!`);
                 content: (
                   <div className="space-y-2 text-xs leading-relaxed text-muted-foreground font-medium">
                     <p>
-                      • <strong className="text-foreground">Processing & Delivery:</strong> Orders
-                      are processed within 3–4 business days and typically delivered within 10–15
-                      business days. Free shipping on orders above ₹2,500 across India.
+                      • <strong className="text-foreground">Processing & Delivery:</strong> Every
+                      order undergoes careful quality inspection and secure packaging before
+                      dispatch. Orders within 1,000 km qualify for free delivery, while a delivery
+                      charge applies to destinations beyond 1,000 km.
                     </p>
                     <p>
                       • <strong className="text-foreground">Exchanges:</strong> We offer exchanges

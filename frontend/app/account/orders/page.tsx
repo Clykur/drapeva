@@ -397,10 +397,12 @@ function OrderCard({
             </table>
           </div>
 
-          <div class="footer">
-            <p>Thank you for your patronage. Drapeva — Timeless Elegance in Every Drape</p>
-            <p style="font-size: 9px; margin-top: 5px; color: #d6d3d1;">This is a computer-generated document and does not require a physical signature.</p>
-          </div>
+     <div class="footer">
+  <p>Thank you for shopping with Drapeva. We hope you enjoy your saree for years to come.</p>
+  <p style="font-size: 9px; margin-top: 5px; color: #d6d3d1;">
+    This is a computer-generated document and does not require a physical signature.
+  </p>
+</div>
         </div>
         <script>
           window.onload = function() {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { EmailService } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -69,6 +70,20 @@ export async function POST(req: Request) {
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    // Trigger admin order cancellation alert email
+    try {
+      EmailService.sendOrderCancellationAlert(order.id, {
+        customerName: order.customer_name,
+        customerEmail: order.customer_email,
+        orderNumber: order.order_number || order.id.slice(0, 8).toUpperCase(),
+        total: order.total || 0,
+      }).catch((e) => {
+        console.error("Failed to send order cancellation alert email:", e);
+      });
+    } catch (e) {
+      console.error("Email service call for cancellation alert failed synchronously:", e);
     }
 
     // Create audit log

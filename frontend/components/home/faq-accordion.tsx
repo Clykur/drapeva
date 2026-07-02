@@ -7,7 +7,7 @@ const faqs = [
   {
     question: "How long does delivery take?",
     answer:
-      "Every Drapeva saree undergoes careful quality inspection before dispatch. Orders are typically delivered within 10–15 business days. Tracking details will be shared via email once your order ships.",
+      "Every order undergoes careful quality inspection and secure packaging before dispatch. Delivery timelines may vary depending on your shipping location. Orders within 1,000 km qualify for free delivery, while a delivery charge applies to destinations beyond 1,000 km. Tracking details will be shared via SMS and email once your order has been dispatched.",
   },
   {
     question: "How can I track my order?",

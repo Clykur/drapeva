@@ -15,6 +15,8 @@ export default function AdminSettings() {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(0);
   const [shippingCost, setShippingCost] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
+  const [storeLat, setStoreLat] = useState<number>(12.9043695);
+  const [storeLng, setStoreLng] = useState<number>(77.7157816);
 
   const {
     data: settings = [],
@@ -50,6 +52,8 @@ export default function AdminSettings() {
       setFreeShippingThreshold(Number(getVal("free_shipping_threshold", 0)));
       setShippingCost(Number(getVal("shipping_cost", 0)));
       setTaxRate(Number(getVal("tax_rate", 0)));
+      setStoreLat(Number(getVal("store_latitude", 12.9043695)));
+      setStoreLng(Number(getVal("store_longitude", 77.7157816)));
     }
   }, [settings]);
 
@@ -64,6 +68,8 @@ export default function AdminSettings() {
       free_shipping_threshold: Number(freeShippingThreshold),
       shipping_cost: Number(shippingCost),
       tax_rate: Number(taxRate),
+      store_latitude: Number(storeLat),
+      store_longitude: Number(storeLng),
     });
   };
 
@@ -194,6 +200,70 @@ export default function AdminSettings() {
                   <strong>GST Tip:</strong> A value of <code>0.05</code> corresponds to a 5% Goods
                   and Services Tax added at checkout. Set to <code>0</code> if your pricing is
                   already tax-inclusive.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Store Location for Distance-Based Shipping */}
+          <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+            <div className="border-b border-border bg-gray-50/50 px-6 py-4 flex items-center gap-2">
+              <Settings className="h-5 w-5 text-gold" />
+              <h3 className="font-semibold text-lg">Store Location</h3>
+            </div>
+            <div className="p-6 space-y-6">
+              <p className="text-sm text-gray-600 leading-relaxed">
+                These coordinates are used to automatically calculate the road distance from your
+                store to each customer&apos;s delivery address. Distance determines whether{" "}
+                <strong>Free Delivery</strong> (≤ 1,000 km) or the flat shipping charge applies.
+              </p>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700 mb-1.5 block">
+                    Store Latitude
+                  </span>
+                  <input
+                    type="number"
+                    step="0.0000001"
+                    value={storeLat}
+                    onChange={(e) => setStoreLat(Number(e.target.value))}
+                    min={-90}
+                    max={90}
+                    className="w-full border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all font-mono"
+                    placeholder="e.g. 12.9043695"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700 mb-1.5 block">
+                    Store Longitude
+                  </span>
+                  <input
+                    type="number"
+                    step="0.0000001"
+                    value={storeLng}
+                    onChange={(e) => setStoreLng(Number(e.target.value))}
+                    min={-180}
+                    max={180}
+                    className="w-full border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all font-mono"
+                    placeholder="e.g. 77.7157816"
+                  />
+                </label>
+              </div>
+              <div className="bg-emerald-50/60 text-emerald-800 text-sm p-4 rounded-lg border border-emerald-100 flex items-start gap-3">
+                <span className="text-xl">📍</span>
+                <p>
+                  <strong>Default:</strong> NPS School Road, Chikkabellandur, Karnataka — Lat{" "}
+                  <code>12.9043695</code>, Lng <code>77.7157816</code>. You can find precise
+                  coordinates for any location at{" "}
+                  <a
+                    href="https://maps.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-emerald-900"
+                  >
+                    maps.google.com
+                  </a>{" "}
+                  (right-click → "What&apos;s here?").
                 </p>
               </div>
             </div>

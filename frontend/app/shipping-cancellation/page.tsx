@@ -31,30 +31,25 @@ export default function ShippingCancellationPolicy() {
             </p>
 
             <div className="space-y-4">
-              <h3 className="font-display text-base tracking-wider text-ink">Order Processing</h3>
+              <h3 className="font-display text-base tracking-wider text-ink">
+                Order Processing & Delivery
+              </h3>
               <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-                All orders are processed within{" "}
-                <span className="text-foreground font-semibold">3 to 4 business days</span> after
-                order confirmation. Once your order has been processed, it will be handed over to
-                our trusted courier partners for delivery.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-display text-base tracking-wider text-ink">Delivery Timeline</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-                Orders are typically delivered within{" "}
-                <span className="text-foreground font-semibold">10 to 15 business days</span> from
-                the date of order confirmation. Delivery timelines may vary depending on your
-                location, public holidays, weather conditions, or unforeseen courier delays.
+                Every order undergoes careful quality inspection and secure packaging before
+                dispatch. Delivery timelines may vary depending on your shipping location. Orders
+                within 1,000 km qualify for free delivery, while a delivery charge applies to
+                destinations beyond 1,000 km. Tracking details will be shared via SMS and email once
+                your order has been dispatched.
               </p>
             </div>
 
             <div className="space-y-4">
               <h3 className="font-display text-base tracking-wider text-ink">Shipping Charges</h3>
               <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-                Shipping charges, if applicable, will be displayed at checkout before you complete
-                your payment.
+                Orders shipped within a 1,000 km distance qualify for{" "}
+                <span className="text-foreground font-semibold">Free Delivery</span>. For
+                destinations beyond 1,000 km, the applicable delivery charge will be automatically
+                calculated and applied during checkout based on your shipping distance.
               </p>
             </div>
 

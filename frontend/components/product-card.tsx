@@ -12,9 +12,10 @@ import { useState } from "react";
 
 interface ProductCardProps {
   product: Product;
+  wishlistMode?: boolean;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, wishlistMode = false }: ProductCardProps) {
   const { wishlist, toggleWishlist, setQuickView, cart, addToCart, updateQty, removeFromCart } =
     useShop();
   const isAuthenticated = useAuth((s) => s.isAuthenticated());
@@ -136,7 +137,12 @@ export function ProductCard({ product }: ProductCardProps) {
                 e.stopPropagation();
                 if (!product.inStock) return;
                 addToCart(product, "Free Size", 1);
-                toast.success("Added to bag");
+                if (wishlistMode && isWished) {
+                  toggleWishlist(product);
+                  toast.success("Moved to bag & removed from wishlist");
+                } else {
+                  toast.success("Added to bag");
+                }
               }}
               disabled={!product.inStock}
               className="w-full bg-foreground py-3 text-[10px] uppercase tracking-[0.2em] text-background font-medium hover:bg-gold hover:text-gold-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

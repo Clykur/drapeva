@@ -9,11 +9,11 @@ import { ChevronDown, Send } from "lucide-react";
 const FAQS = [
   {
     q: "How long does delivery take?",
-    a: "Most orders are processed within a week and delivered across India within 7-10 days, depending on your location.",
+    a: "Every order undergoes careful quality inspection and secure packaging before dispatch. Delivery timelines may vary depending on your shipping location. Orders within 1,000 km qualify for free delivery, while a delivery charge applies to destinations beyond 1,000 km. Tracking details will be shared via SMS and email once your order has been dispatched.",
   },
   {
     q: "Do you ship across India?",
-    a: "Yes, Drapeva currently delivers to customers across India. Shipping timelines may vary based on the delivery location.",
+    a: "Yes, Drapeva delivers across India. We offer free delivery for orders within 1,000 km, and automatically apply a delivery charge during checkout for orders beyond 1,000 km.",
   },
   {
     q: "How can I track my order?",

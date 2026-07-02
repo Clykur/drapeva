@@ -29,6 +29,7 @@ const OrderInputSchema = z.object({
     state: z.string(),
     postalCode: z.string(),
     country: z.string(),
+    distance: z.number().min(0).optional(),
   }),
 });
 
@@ -125,7 +126,15 @@ router.post(
         }
 
         // Shipping & Tax
-        const shippingCost = subtotal > 50000 ? 0 : 1500;
+        const distance = (data.address as any).distance;
+        const shippingCost =
+          distance !== undefined && distance !== null
+            ? distance <= 1000
+              ? 0
+              : 299
+            : subtotal > 50000
+              ? 0
+              : 1500;
         const tax = subtotal * 0.05; // 5% GST
 
         // Coupon discount

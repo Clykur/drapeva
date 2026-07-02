@@ -2,18 +2,35 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, Suspense } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useShop, cartTotal, cartCount } from "@/lib/store";
 import { useCheckoutStore } from "@/lib/checkout-store";
 import { useAddressesStore } from "@/lib/addresses-store";
-import { ordersApi, couponsApi } from "@/lib/api";
+import { ordersApi, couponsApi, settingsApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
 import { formatINR } from "@/lib/types";
 import type { ShippingAddress, OrderItem, CustomerAddress } from "@/lib/types";
-import { ShoppingBag, ArrowLeft, Tag, Navigation, Loader2, Plus, Check } from "lucide-react";
+import {
+  ShoppingBag,
+  ArrowLeft,
+  Tag,
+  Navigation,
+  Loader2,
+  Plus,
+  Check,
+  Truck,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import Script from "next/script";
+import {
+  getStoreOrigin,
+  reverseGeocode,
+  resolveDistance,
+  FREE_DELIVERY_MAX_KM,
+} from "@/lib/services/distance";
 
 declare global {
   interface Window {
@@ -21,7 +38,6 @@ declare global {
   }
 }
 
-const SHIPPING_COST = 299;
 const TAX_RATE = 0.05;
 
 const INDIAN_STATES = [
@@ -63,6 +79,18 @@ function CheckoutContent() {
   const { cart, clearCart } = useShop();
   const { user, isAuthenticated } = useAuth();
 
+  const { data: settings = [] } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: settingsApi.getSettings,
+  });
+
+  const getSettingVal = (key: string, fallback: any) => {
+    const item = settings.find((s) => s.key === key);
+    return item && item.value !== undefined ? item.value : fallback;
+  };
+
+  const configuredShippingCost = Number(getSettingVal("shipping_cost", 299));
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push(
@@ -103,6 +131,8 @@ function CheckoutContent() {
   const [pinLoading, setPinLoading] = useState(false);
   const [loadingAddresses, setLoadingAddresses] = useState(savedAddresses.length === 0);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [distanceCalculating, setDistanceCalculating] = useState(false);
+  const [distanceError, setDistanceError] = useState<string | null>(null);
 
   // Payment ephemeral states (never persisted)
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -195,6 +225,10 @@ function CheckoutContent() {
                   country: sa.country || "India",
                   latitude: null,
                   longitude: null,
+                  distance_km: null,
+                  distance_calculated_at: null,
+                  distance_status: null,
+                  shipping_charge: null,
                   is_default: i === 0,
                 });
                 createdList.push(inserted);
@@ -210,6 +244,7 @@ function CheckoutContent() {
                 state: def.state,
                 postal_code: def.postal_code,
                 country: def.country || "India",
+                distance: def.distance_km || undefined,
               });
               setShowNewAddressForm(false);
               toast.success("Imported delivery address from your previous orders.");
@@ -231,6 +266,41 @@ function CheckoutContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // ── Distance calculation helper ─────────────────────────────────────────
+
+  const computeDistance = useCallback(
+    async (lat: number, lng: number): Promise<number | null> => {
+      const storeOrigin = getStoreOrigin(settings);
+      setDistanceCalculating(true);
+      setDistanceError(null);
+      try {
+        const result = await resolveDistance(
+          storeOrigin.lat,
+          storeOrigin.lng,
+          lat,
+          lng,
+          configuredShippingCost,
+        );
+        if (result.status === "success") {
+          const currentAddr = useCheckoutStore.getState().address;
+          setAddress({ ...currentAddr, distance: result.distanceKm });
+          return result.distanceKm;
+        } else {
+          setDistanceError(
+            "Distance calculation failed. Please try again or select a different address.",
+          );
+          return null;
+        }
+      } catch {
+        setDistanceError("Network error during distance calculation. Please try again.");
+        return null;
+      } finally {
+        setDistanceCalculating(false);
+      }
+    },
+    [settings, configuredShippingCost, setAddress],
+  );
+
   // Helper to auto-save new address to table if it doesn't match existing saved ones
   const autoSaveAddressIfNeeded = async () => {
     if (!user) return;
@@ -250,7 +320,6 @@ function CheckoutContent() {
 
       if (!isAlreadySaved) {
         const label = currentList.length === 0 ? "Home" : `Address ${currentList.length + 1}`;
-        // Use optimistic add via the store
         await addrStore.addAddress({
           user_id: user.id,
           label,
@@ -262,8 +331,17 @@ function CheckoutContent() {
           state: address.state,
           postal_code: address.postal_code,
           country: address.country || "India",
-          latitude: null,
-          longitude: null,
+          latitude: address.latitude ?? null,
+          longitude: address.longitude ?? null,
+          distance_km: address.distance ?? null,
+          distance_calculated_at: new Date().toISOString(),
+          distance_status: address.distance !== undefined ? "success" : null,
+          shipping_charge:
+            address.distance !== undefined
+              ? address.distance <= FREE_DELIVERY_MAX_KM
+                ? 0
+                : configuredShippingCost
+              : null,
           is_default: currentList.length === 0,
         });
       }
@@ -278,35 +356,40 @@ function CheckoutContent() {
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const currentAddr = useCheckoutStore.getState().address;
+        // Reset distance while calculating
+        setAddress({ ...currentAddr, latitude, longitude, distance: undefined });
+        setDistanceError(null);
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`,
-          );
-          const data = await res.json();
-          const addr = data.address || {};
+          const [geocodeResult] = await Promise.all([
+            reverseGeocode(latitude, longitude),
+            // Kick off distance calculation simultaneously
+            computeDistance(latitude, longitude),
+          ]);
 
-          const locality =
-            addr.suburb ||
-            addr.neighbourhood ||
-            addr.village ||
-            addr.sublocality ||
-            addr.locality ||
-            "";
-          const streetRoad = addr.road || addr.street || addr.pedestrian || "";
-          const line1 = [locality, streetRoad].filter(Boolean).join(", ");
-
-          const line2 = [addr.city_district, addr.county].filter(Boolean).join(", ");
-
-          setAddress({
-            ...address,
-            line1: line1 || address.line1,
-            line2: line2 || address.line2,
-            city: addr.city || addr.town || addr.village || addr.county || address.city,
-            state: addr.state || address.state,
-            postal_code: addr.postcode || address.postal_code,
-            country: addr.country || address.country || "India",
-          });
-          toast.success("Location detected! Please verify the address fields.");
+          if (geocodeResult) {
+            const addr = geocodeResult;
+            const locality = addr.line1;
+            const line2 = addr.line2;
+            const updatedAddr = useCheckoutStore.getState().address;
+            setAddress({
+              ...updatedAddr,
+              latitude,
+              longitude,
+              line1: addr.line1 || updatedAddr.line1,
+              line2: addr.line2 || updatedAddr.line2,
+              city: addr.city || updatedAddr.city,
+              state: addr.state || updatedAddr.state,
+              postal_code: addr.postalCode || updatedAddr.postal_code,
+              country: addr.country || updatedAddr.country || "India",
+            });
+            void locality;
+            void line2;
+            toast.success("Location detected! Please verify the address fields.");
+          } else {
+            toast.info("GPS detected — please fill address manually.");
+          }
         } catch {
           toast.info("GPS detected — please fill address manually.");
         } finally {
@@ -315,8 +398,14 @@ function CheckoutContent() {
       },
       (err) => {
         setLocating(false);
-        toast.error("Location access denied: " + err.message);
+        const messages: Record<number, string> = {
+          1: "Location permission was denied. Please allow location access in your browser settings.",
+          2: "Location could not be determined. Please try again.",
+          3: "Location request timed out. Please try again.",
+        };
+        toast.error(messages[err.code] || `Location access error: ${err.message}`);
       },
+      { timeout: 15000, enableHighAccuracy: true },
     );
   };
 
@@ -348,7 +437,16 @@ function CheckoutContent() {
 
   const subtotal = cartTotal(cart);
   const discount = appliedCoupon?.discount || 0;
-  const shipping = subtotal >= 2500 ? 0 : SHIPPING_COST;
+
+  const hasDistance = address?.distance !== undefined && address?.distance !== null;
+  const distanceVal = hasDistance ? Number(address.distance) : null;
+  const shipping =
+    distanceVal !== null
+      ? distanceVal <= FREE_DELIVERY_MAX_KM
+        ? 0
+        : configuredShippingCost
+      : configuredShippingCost;
+
   const taxable = Math.max(0, subtotal - discount);
   const tax = taxable * TAX_RATE;
   const total = taxable + tax + shipping;
@@ -562,6 +660,27 @@ function CheckoutContent() {
       return;
     }
 
+    // Require a successful distance calculation before proceeding
+    if (address.distance === undefined || address.distance === null) {
+      // If we have coordinates, try to calculate now
+      if (address.latitude && address.longitude) {
+        toast.info("Calculating shipping distance…");
+        const km = await computeDistance(address.latitude, address.longitude);
+        if (km === null) {
+          toast.error(
+            "Distance calculation failed. Please try 'Use My Location' again before continuing.",
+          );
+          return;
+        }
+        // km is now set on address via setAddress inside computeDistance — proceed
+      } else {
+        toast.error(
+          "Please use 'Use My Location' to detect your coordinates — shipping distance must be calculated before proceeding.",
+        );
+        return;
+      }
+    }
+
     try {
       if (editingAddressId) {
         await useAddressesStore.getState().updateAddress(editingAddressId, {
@@ -573,6 +692,17 @@ function CheckoutContent() {
           state: address.state,
           postal_code: address.postal_code,
           country: address.country || "India",
+          latitude: address.latitude ?? null,
+          longitude: address.longitude ?? null,
+          distance_km: address.distance ?? null,
+          distance_calculated_at: new Date().toISOString(),
+          distance_status: "success",
+          shipping_charge:
+            address.distance !== undefined
+              ? address.distance <= FREE_DELIVERY_MAX_KM
+                ? 0
+                : configuredShippingCost
+              : null,
         });
         setSelectedAddressId(editingAddressId);
         setEditingAddressId(null);
@@ -604,8 +734,17 @@ function CheckoutContent() {
             state: address.state,
             postal_code: address.postal_code,
             country: address.country || "India",
-            latitude: null,
-            longitude: null,
+            latitude: address.latitude ?? null,
+            longitude: address.longitude ?? null,
+            distance_km: address.distance ?? null,
+            distance_calculated_at: new Date().toISOString(),
+            distance_status: "success",
+            shipping_charge:
+              address.distance !== undefined
+                ? address.distance <= FREE_DELIVERY_MAX_KM
+                  ? 0
+                  : configuredShippingCost
+                : null,
             is_default: addrStore.addresses.length === 0,
           });
           setSelectedAddressId(inserted.id);
@@ -677,8 +816,9 @@ function CheckoutContent() {
                       return (
                         <div
                           key={addr.id}
-                          onClick={() => {
+                          onClick={async () => {
                             setSelectedAddressId(addr.id);
+                            // Populate address into checkout state
                             setAddress({
                               name: addr.name,
                               phone: addr.phone,
@@ -688,7 +828,20 @@ function CheckoutContent() {
                               state: addr.state,
                               postal_code: addr.postal_code,
                               country: addr.country || "India",
+                              latitude: addr.latitude,
+                              longitude: addr.longitude,
+                              distance: addr.distance_km ?? undefined,
                             });
+                            setDistanceError(null);
+
+                            // If the address has no distance or a failed status, recalculate
+                            if (
+                              (addr.distance_status !== "success" || addr.distance_km === null) &&
+                              addr.latitude &&
+                              addr.longitude
+                            ) {
+                              await computeDistance(addr.latitude, addr.longitude);
+                            }
                           }}
                           className={`cursor-pointer border p-5 relative transition-all duration-300 flex flex-col justify-between ${
                             isSelected
@@ -737,6 +890,9 @@ function CheckoutContent() {
                                       state: addr.state,
                                       postal_code: addr.postal_code,
                                       country: addr.country || "India",
+                                      latitude: addr.latitude,
+                                      longitude: addr.longitude,
+                                      distance: addr.distance_km ?? undefined,
                                     });
                                     setShowNewAddressForm(true);
                                   }}
@@ -811,6 +967,7 @@ function CheckoutContent() {
                           postal_code: "",
                           country: "India",
                         });
+                        setDistanceError(null);
                       }}
                       className="inline-flex items-center justify-center gap-2 border border-border px-5 py-4 text-xs uppercase tracking-wider font-medium hover:bg-muted transition-colors"
                     >
@@ -820,7 +977,7 @@ function CheckoutContent() {
 
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (
                           !address.name ||
                           !address.phone ||
@@ -831,14 +988,48 @@ function CheckoutContent() {
                           toast.error("Selected address is invalid. Please fill a new address.");
                           return;
                         }
+                        // Validate distance — recalculate if needed
+                        if (
+                          (address.distance === undefined || address.distance === null) &&
+                          address.latitude &&
+                          address.longitude
+                        ) {
+                          const km = await computeDistance(address.latitude, address.longitude);
+                          if (km === null) {
+                            toast.error(
+                              "Could not calculate shipping distance. Please try a different address.",
+                            );
+                            return;
+                          }
+                        } else if (address.distance === undefined || address.distance === null) {
+                          toast.error(
+                            "Shipping distance is not available for this address. Please add a new address using 'Use My Location'.",
+                          );
+                          return;
+                        }
                         setStep("payment");
                       }}
-                      disabled={!selectedAddressId}
-                      className="flex-1 bg-foreground text-background py-4 px-5 text-xs uppercase tracking-[0.25em] font-semibold hover:bg-gold hover:text-gold-foreground transition-colors disabled:opacity-50"
+                      disabled={!selectedAddressId || distanceCalculating}
+                      className="flex-1 bg-foreground text-background py-4 px-5 text-xs uppercase tracking-[0.25em] font-semibold hover:bg-gold hover:text-gold-foreground transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      Deliver to this Address
+                      {distanceCalculating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Calculating distance…
+                        </>
+                      ) : (
+                        "Deliver to this Address"
+                      )}
                     </button>
                   </div>
+
+                  {/* Distance error for saved address section */}
+                  {distanceError && (
+                    <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
+                      <XCircle className="h-3.5 w-3.5 shrink-0" />
+                      {distanceError}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -864,6 +1055,7 @@ function CheckoutContent() {
                             type="button"
                             onClick={() => {
                               setShowNewAddressForm(false);
+                              setDistanceError(null);
                               const def =
                                 savedAddresses.find((a) => a.is_default) || savedAddresses[0];
                               setSelectedAddressId(def.id);
@@ -876,6 +1068,9 @@ function CheckoutContent() {
                                 state: def.state,
                                 postal_code: def.postal_code,
                                 country: def.country || "India",
+                                latitude: def.latitude,
+                                longitude: def.longitude,
+                                distance: def.distance_km ?? undefined,
                               });
                             }}
                             className="text-[10px] text-gold uppercase tracking-widest hover:underline mt-1 block font-medium"
@@ -981,13 +1176,55 @@ function CheckoutContent() {
                         </select>
                       </label>
                     </div>
+
+                    {/* Distance status banner in address form */}
+                    {address.latitude && address.longitude && (
+                      <div
+                        className={`flex items-center gap-3 px-4 py-3 border text-xs ${
+                          distanceCalculating
+                            ? "border-gold/30 bg-gold/5 text-gold"
+                            : address.distance !== undefined && address.distance !== null
+                              ? "border-emerald-200 bg-emerald-50/50 text-emerald-700"
+                              : "border-destructive/30 bg-destructive/5 text-destructive"
+                        }`}
+                      >
+                        {distanceCalculating ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                        ) : address.distance !== undefined && address.distance !== null ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                        ) : (
+                          <XCircle className="h-3.5 w-3.5 shrink-0" />
+                        )}
+                        <span>
+                          {distanceCalculating
+                            ? "Calculating road distance from store…"
+                            : address.distance !== undefined && address.distance !== null
+                              ? `${address.distance} km from store · ${
+                                  address.distance <= FREE_DELIVERY_MAX_KM
+                                    ? "Free Delivery ✓"
+                                    : `Delivery charge: ${formatINR(configuredShippingCost)}`
+                                }`
+                              : distanceError ||
+                                "Distance not calculated — please use 'Use My Location' or it will be required before proceeding."}
+                        </span>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={distanceCalculating}
+                      className="w-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.25em] font-medium hover:bg-gold hover:text-gold-foreground transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {distanceCalculating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Calculating distance…
+                        </>
+                      ) : (
+                        "Continue to Payment"
+                      )}
+                    </button>
                   </div>
-                  <button
-                    type="submit"
-                    className="w-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.25em] font-medium hover:bg-gold hover:text-gold-foreground transition-colors"
-                  >
-                    Continue to Payment
-                  </button>
                 </form>
               )}
             </div>
@@ -1187,9 +1424,40 @@ function CheckoutContent() {
             </div>
           </div>
 
-          {shipping === 0 && (
-            <p className="text-xs text-emerald-600 text-center">
-              Free shipping applied on orders above ₹2,500
+          {/* Distance & shipping info panel */}
+          {distanceVal !== null ? (
+            <div
+              className={`border px-4 py-3 flex items-start gap-2.5 text-xs ${
+                distanceVal <= FREE_DELIVERY_MAX_KM
+                  ? "border-emerald-200 bg-emerald-50/50 text-emerald-700"
+                  : "border-gold/30 bg-gold/5 text-gold"
+              }`}
+            >
+              {distanceVal <= FREE_DELIVERY_MAX_KM ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+              ) : (
+                <Truck className="h-4 w-4 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <p className="font-medium">
+                  {distanceVal <= FREE_DELIVERY_MAX_KM
+                    ? `Free Delivery — ${distanceVal} km from store`
+                    : `Paid Delivery — ${distanceVal} km from store`}
+                </p>
+                <p className="mt-0.5 text-[10px] opacity-80">
+                  {distanceVal <= FREE_DELIVERY_MAX_KM
+                    ? "Within 1,000 km · No delivery charge"
+                    : `Beyond 1,000 km · ${formatINR(shipping)} delivery charge applied`}
+                </p>
+              </div>
+            </div>
+          ) : distanceCalculating ? (
+            <p className="text-xs text-gold flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" /> Calculating shipping distance…
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center">
+              Use &ldquo;Use My Location&rdquo; on the address form to calculate delivery charge.
             </p>
           )}
         </div>

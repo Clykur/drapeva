@@ -447,6 +447,9 @@ export interface ShippingAddress {
   state: string;
   postal_code: string;
   country: string;
+  distance?: number;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface OrderItem {
@@ -504,6 +507,8 @@ export interface NewsletterSubscriber {
 // NEW ENTITY TYPES
 // ============================================================
 
+export type AddressDistanceStatus = "pending" | "success" | "failed";
+
 export interface CustomerAddress {
   id: string;
   user_id: string;
@@ -518,6 +523,14 @@ export interface CustomerAddress {
   country: string;
   latitude: number | null;
   longitude: number | null;
+  /** Calculated road distance from store in km */
+  distance_km: number | null;
+  /** ISO timestamp of when distance was last computed */
+  distance_calculated_at: string | null;
+  /** Whether the last calculation succeeded */
+  distance_status: AddressDistanceStatus | null;
+  /** Shipping charge determined by distance (0 = free) */
+  shipping_charge: number | null;
   is_default: boolean;
   created_at: string;
   updated_at: string;

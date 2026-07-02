@@ -170,11 +170,12 @@ export default function OrderSuccessPage() {
               <p className="font-semibold text-foreground uppercase tracking-widest text-[10px] text-gold flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" /> Estimated Delivery Timeline
               </p>
-              <p className="text-muted-foreground">
-                Every Drapeva saree is carefully prepared and undergoes a thorough quality
-                inspection to ensure it reaches you in perfect condition. As part of this commitment
-                to quality, delivery typically takes 10–15 business days. Once your order is
-                dispatched, tracking details will be shared via email.
+              <p className="text-muted-foreground leading-relaxed">
+                Every order undergoes careful quality inspection and secure packaging before
+                dispatch. Delivery timelines may vary depending on your shipping location. Orders
+                within 1,000 km qualify for free delivery, while a delivery charge applies to
+                destinations beyond 1,000 km. Tracking details will be shared via SMS and email once
+                your order has been dispatched.
               </p>
             </div>
           </div>
