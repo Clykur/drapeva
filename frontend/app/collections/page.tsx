@@ -38,7 +38,6 @@ const PRICE_BANDS: { label: string; min?: number; max?: number }[] = [
 });
 const SORT_OPTIONS = [
   { value: "featured", label: "Featured" },
-  { value: "bestsellers", label: "Bestsellers" },
   { value: "newest", label: "Latest Arrivals" },
   { value: "price-asc", label: "Price: Low to High" },
   { value: "price-desc", label: "Price: High to Low" },
@@ -272,20 +271,6 @@ function ShopContent() {
             </div>
 
             <FilterGroup title="Collection">
-              <Check
-                label="Bestsellers"
-                checked={collection === "bestsellers"}
-                onChange={() => {
-                  const params = new URLSearchParams(window.location.search);
-                  params.delete("page");
-                  if (collection === "bestsellers") {
-                    params.delete("collection");
-                  } else {
-                    params.set("collection", "bestsellers");
-                  }
-                  router.push(`${pathname}?${params.toString()}`);
-                }}
-              />
               {collections.map((c) => (
                 <Check
                   key={c.id}

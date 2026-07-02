@@ -13,9 +13,15 @@ export default function Wishlist() {
   const { addToCart, wishlistItems, toggleWishlist } = useShop();
 
   const handleAddToCart = (product: any) => {
+    if (!product.inStock || product.stock_quantity === 0) {
+      toast.error("This item is out of stock.");
+      return;
+    }
     const defaultSize = product.sizes?.[0] || "Standard (5.5m)";
     addToCart(product, defaultSize);
-    toast.success(`${product.name} added to bag`);
+    // Myntra-style: auto-remove from wishlist after adding to cart
+    toggleWishlist(product);
+    toast.success(`Moved to bag & removed from wishlist`);
   };
 
   return (
@@ -28,7 +34,7 @@ export default function Wishlist() {
             Save your favourite pieces to revisit later.
           </p>
           <Link
-            href={`/shop?category=${"all"}`}
+            href="/collections"
             className="mt-6 inline-block bg-foreground text-background px-6 py-3 text-xs uppercase tracking-widest hover:bg-gold hover:text-gold-foreground transition-colors"
           >
             Explore Collections

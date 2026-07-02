@@ -31,7 +31,7 @@ export const OrderShippedEmail: React.FC<OrderShippedEmailProps> = ({
   courierName,
   trackingNumber,
   trackingUrl,
-  estimatedDelivery = "5–7 Business Days",
+  estimatedDelivery = "Distance-based (Free within 1,000 km)",
   items,
 }) => {
   const brandGold = "#d4af37";
@@ -111,11 +111,29 @@ export const OrderShippedEmail: React.FC<OrderShippedEmailProps> = ({
                 fontSize: "15px",
                 lineHeight: "1.6",
                 color: "#555555",
-                margin: "0 0 30px 0",
+                margin: "0 0 20px 0",
               }}
             >
               Exciting news! Your custom order <strong>#{orderCode}</strong> has completed
-              craftsmanship and is now dispatched. It will be delivered to your doorstep soon.
+              craftsmanship and is now dispatched.
+            </p>
+            <p
+              style={{
+                fontSize: "14px",
+                lineHeight: "1.6",
+                color: "#666666",
+                padding: "20px",
+                backgroundColor: "#fcfbf9",
+                border: "1px solid #e2dcd0",
+                margin: "0 0 30px 0",
+                fontStyle: "italic",
+              }}
+            >
+              Every order undergoes careful quality inspection and secure packaging before dispatch.
+              Delivery timelines may vary depending on your shipping location. Orders within 1,000
+              km qualify for free delivery, while a delivery charge applies to destinations beyond
+              1,000 km. Tracking details will be shared via SMS and email once your order has been
+              dispatched.
             </p>
           </td>
         </tr>

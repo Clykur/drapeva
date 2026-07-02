@@ -41,9 +41,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <MaintenancePage />
         <Toaster
           position="top-right"
+          closeButton
+          richColors
+          duration={4500}
+          offset={80}
           toastOptions={{
-            style: { background: "#000000", color: "#ffffff", border: "none" },
-            className: "text-white shadow-lg rounded-md font-sans mt-10 md:mt-10",
+            classNames: {
+              toast: "font-sans text-sm shadow-xl",
+              closeButton: "!left-1 !top-1 !right-auto",
+            },
           }}
         />
       </QueryClientProvider>
@@ -55,9 +61,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <OfflineDetector>{children}</OfflineDetector>
       <Toaster
         position="top-right"
+        closeButton
+        richColors
+        duration={4500}
+        offset={80}
         toastOptions={{
-          style: { background: "#000000", color: "#ffffff", border: "none" },
-          className: "text-white shadow-lg rounded-md font-sans mt-10 md:mt-10",
+          classNames: {
+            toast: "font-sans text-sm shadow-xl",
+            closeButton: "!left-1 !top-1 !right-auto",
+          },
         }}
       />
     </QueryClientProvider>

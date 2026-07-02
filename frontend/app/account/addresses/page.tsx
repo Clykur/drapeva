@@ -1,12 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { MapPin, Plus, Trash2, Star, Navigation, Loader2 } from "lucide-react";
+import {
+  MapPin,
+  Plus,
+  Trash2,
+  Star,
+  Navigation,
+  Loader2,
+  Truck,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-store";
 import { useAddressesStore } from "@/lib/addresses-store";
+import { settingsApi } from "@/lib/api";
 import type { CustomerAddress } from "@/lib/types";
+import { formatINR } from "@/lib/types";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
+import {
+  getStoreOrigin,
+  reverseGeocode,
+  resolveDistance,
+  FREE_DELIVERY_MAX_KM,
+} from "@/lib/services/distance";
 
 const INDIA_STATES = [
   "Andhra Pradesh",
@@ -44,7 +63,27 @@ const INDIA_STATES = [
   "Chandigarh",
 ];
 
-const emptyForm = {
+interface FormState {
+  label: string;
+  name: string;
+  phone: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  is_default: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  // Distance fields
+  distance_km: number | null;
+  distance_calculated_at: string | null;
+  distance_status: "pending" | "success" | "failed" | null;
+  shipping_charge: number | null;
+}
+
+const emptyForm: FormState = {
   label: "Home",
   name: "",
   phone: "",
@@ -55,14 +94,17 @@ const emptyForm = {
   postal_code: "",
   country: "India",
   is_default: false,
-  latitude: null as number | null,
-  longitude: null as number | null,
+  latitude: null,
+  longitude: null,
+  distance_km: null,
+  distance_calculated_at: null,
+  distance_status: null,
+  shipping_charge: null,
 };
 
 export default function AddressBook() {
   const { user } = useAuth();
 
-  // Zustand address store
   const {
     addresses,
     loading,
@@ -73,100 +115,159 @@ export default function AddressBook() {
     setDefaultAddress,
   } = useAddressesStore();
 
-  // Ephemeral local UI state
+  // Site settings for store origin + configured shipping cost
+  const { data: settings = [] } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: settingsApi.getSettings,
+  });
+
+  const configuredShippingCost = (() => {
+    const item = settings.find((s) => s.key === "shipping_cost");
+    return item && item.value !== undefined ? Number(item.value) : 299;
+  })();
+
+  // UI state
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form, setForm] = useState<FormState>({ ...emptyForm });
   const [locating, setLocating] = useState(false);
   const [pinLoading, setPinLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [calculating, setCalculating] = useState(false);
 
-  // Fetch addresses on mount (returns cached instantly if available)
   useEffect(() => {
-    if (user) {
-      fetchAddresses(user.id);
-    }
+    if (user) fetchAddresses(user.id);
   }, [user, fetchAddresses]);
 
   const resetForm = () => {
     setForm({ ...emptyForm });
     setShowForm(false);
     setEditId(null);
+    setCalculating(false);
   };
 
-  const handleEdit = (addr: CustomerAddress) => {
-    setForm({
-      label: addr.label || "Home",
-      name: addr.name,
-      phone: addr.phone,
-      line1: addr.line1,
-      line2: addr.line2 || "",
-      city: addr.city,
-      state: addr.state,
-      postal_code: addr.postal_code,
-      country: addr.country,
-      is_default: addr.is_default,
-      latitude: addr.latitude,
-      longitude: addr.longitude,
-    });
-    setEditId(addr.id);
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  // ── Distance calculation ──────────────────────────────────────────────────
 
-  // GPS location detection
+  const runDistanceCalculation = useCallback(
+    async (
+      lat: number,
+      lng: number,
+    ): Promise<{
+      distance_km: number | null;
+      distance_calculated_at: string | null;
+      distance_status: "pending" | "success" | "failed";
+      shipping_charge: number | null;
+    }> => {
+      const storeOrigin = getStoreOrigin(settings);
+      setCalculating(true);
+      try {
+        const result = await resolveDistance(
+          storeOrigin.lat,
+          storeOrigin.lng,
+          lat,
+          lng,
+          configuredShippingCost,
+        );
+        return {
+          distance_km: result.distanceKm,
+          distance_calculated_at: result.calculatedAt,
+          distance_status: result.status,
+          shipping_charge: result.shippingCharge,
+        };
+      } catch {
+        return {
+          distance_km: null,
+          distance_calculated_at: new Date().toISOString(),
+          distance_status: "failed",
+          shipping_charge: null,
+        };
+      } finally {
+        setCalculating(false);
+      }
+    },
+    [settings, configuredShippingCost],
+  );
+
+  // ── GPS "Use My Location" ─────────────────────────────────────────────────
+
   const detectLocation = () => {
     if (!navigator.geolocation) {
       return toast.error("Geolocation is not supported by your browser");
     }
     setLocating(true);
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
-        setForm((f) => ({ ...f, latitude, longitude }));
 
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-          );
-          const data = await res.json();
-          const addr = data.address || {};
+        // Clear any previous distance result while we recalculate
+        setForm((f) => ({
+          ...f,
+          latitude,
+          longitude,
+          distance_km: null,
+          distance_status: "pending",
+          shipping_charge: null,
+        }));
 
-          const locality =
-            addr.suburb ||
-            addr.neighbourhood ||
-            addr.village ||
-            addr.sublocality ||
-            addr.locality ||
-            "";
-          const streetRoad = addr.road || addr.street || addr.pedestrian || "";
-          const line1 = [locality, streetRoad].filter(Boolean).join(", ");
-          const line2 = [addr.city_district, addr.county].filter(Boolean).join(", ");
+        // Run reverse geocoding and distance in parallel
+        const [geocodeResult, distanceResult] = await Promise.all([
+          reverseGeocode(latitude, longitude),
+          runDistanceCalculation(latitude, longitude),
+        ]);
 
-          setForm((f) => ({
-            ...f,
-            line1: line1 || f.line1,
-            line2: line2 || f.line2,
-            city: addr.city || addr.town || addr.village || addr.county || f.city,
-            state: addr.state || f.state,
-            postal_code: addr.postcode || f.postal_code,
-            country: addr.country || f.country || "India",
-          }));
-          toast.success("Location detected! Please verify the fields.");
-        } catch {
-          toast.info("Location coordinates captured. Please fill city/state manually.");
-        } finally {
-          setLocating(false);
+        setForm((f) => ({
+          ...f,
+          latitude,
+          longitude,
+          ...(geocodeResult
+            ? {
+                line1: geocodeResult.line1 || f.line1,
+                line2: geocodeResult.line2 || f.line2,
+                city: geocodeResult.city || f.city,
+                state: geocodeResult.state || f.state,
+                postal_code: geocodeResult.postalCode || f.postal_code,
+                country: geocodeResult.country || f.country || "India",
+              }
+            : {}),
+          ...distanceResult,
+        }));
+
+        if (geocodeResult) {
+          toast.success("Location detected! Please verify the address fields.");
+        } else {
+          toast.info("Location coordinates captured. Please fill address fields manually.");
         }
+
+        if (distanceResult.distance_status === "success") {
+          toast.success(
+            `Shipping distance: ${distanceResult.distance_km} km — ${
+              (distanceResult.distance_km ?? 0) <= FREE_DELIVERY_MAX_KM
+                ? "Free Delivery ✓"
+                : `${formatINR(distanceResult.shipping_charge ?? 0)} shipping`
+            }`,
+          );
+        } else {
+          toast.error("Could not calculate shipping distance. Please try again before saving.");
+        }
+
+        setLocating(false);
       },
       (err) => {
         setLocating(false);
-        toast.error("Could not access location: " + err.message);
+        const messages: Record<number, string> = {
+          1: "Location permission was denied. Please allow location access in your browser settings.",
+          2: "Location could not be determined. Please try again.",
+          3: "Location request timed out. Please try again.",
+        };
+        toast.error(messages[err.code] || `Location error: ${err.message}`);
       },
+      { timeout: 15000, enableHighAccuracy: true },
     );
   };
 
-  // PIN code auto-fill (India Post API)
+  // ── PIN code auto-fill ────────────────────────────────────────────────────
+
   const lookupPin = async (pin: string) => {
     if (pin.length !== 6) return;
     setPinLoading(true);
@@ -189,15 +290,82 @@ export default function AddressBook() {
     }
   };
 
+  // ── Edit existing address ─────────────────────────────────────────────────
+
+  const handleEdit = (addr: CustomerAddress) => {
+    setForm({
+      label: addr.label || "Home",
+      name: addr.name,
+      phone: addr.phone,
+      line1: addr.line1,
+      line2: addr.line2 || "",
+      city: addr.city,
+      state: addr.state,
+      postal_code: addr.postal_code,
+      country: addr.country,
+      is_default: addr.is_default,
+      latitude: addr.latitude,
+      longitude: addr.longitude,
+      distance_km: addr.distance_km,
+      distance_calculated_at: addr.distance_calculated_at,
+      distance_status: addr.distance_status,
+      shipping_charge: addr.shipping_charge,
+    });
+    setEditId(addr.id);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ── Submit (add / update) ─────────────────────────────────────────────────
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    setSaving(true);
 
+    // Block save if no successful distance calculation
+    if (form.distance_status !== "success") {
+      if (form.latitude && form.longitude) {
+        // Coordinates exist but distance calc failed — retry once
+        toast.info("Retrying distance calculation before saving…");
+        const distanceResult = await runDistanceCalculation(form.latitude, form.longitude);
+        setForm((f) => ({ ...f, ...distanceResult }));
+        if (distanceResult.distance_status !== "success") {
+          toast.error("Distance calculation failed. Please use 'Use My Location' and try again.");
+          return;
+        }
+        // Use the fresh result for saving
+        await persistAddress(user.id, { ...form, ...distanceResult });
+        return;
+      }
+      toast.error(
+        "Please use 'Use My Location' to detect your coordinates — shipping distance must be calculated before saving.",
+      );
+      return;
+    }
+
+    await persistAddress(user.id, form);
+  };
+
+  const persistAddress = async (userId: string, data: FormState) => {
+    setSaving(true);
     const addressData = {
-      user_id: user.id,
-      ...form,
-      line2: form.line2 || null,
+      user_id: userId,
+      label: data.label,
+      name: data.name,
+      phone: data.phone,
+      line1: data.line1,
+      line2: data.line2 || null,
+      city: data.city,
+      state: data.state,
+      postal_code: data.postal_code,
+      country: data.country,
+      is_default: data.is_default,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      distance_km: data.distance_km,
+      distance_calculated_at: data.distance_calculated_at,
+      distance_status: data.distance_status,
+      shipping_charge: data.shipping_charge,
     };
 
     try {
@@ -215,6 +383,8 @@ export default function AddressBook() {
       setSaving(false);
     }
   };
+
+  // ── Delete / set default ──────────────────────────────────────────────────
 
   const handleDelete = async (id: string) => {
     if (!confirm("Remove this address?")) return;
@@ -236,6 +406,34 @@ export default function AddressBook() {
     }
   };
 
+  // ── Distance UI helpers ───────────────────────────────────────────────────
+
+  const isDistanceReady = form.distance_status === "success";
+  const isSaveBlocked = !isDistanceReady || calculating || saving;
+
+  const DistanceBadge = ({ addr }: { addr: CustomerAddress }) => {
+    if (!addr.distance_status || addr.distance_status === "pending") return null;
+    if (addr.distance_status === "failed") {
+      return (
+        <p className="text-xs text-destructive mt-2 ml-6 flex items-center gap-1">
+          <XCircle className="h-3 w-3" /> Distance calculation failed
+        </p>
+      );
+    }
+    const isFree = (addr.distance_km ?? 0) <= FREE_DELIVERY_MAX_KM;
+    return (
+      <p
+        className={`text-xs mt-2 ml-6 flex items-center gap-1 ${isFree ? "text-emerald-600" : "text-gold"}`}
+      >
+        <Truck className="h-3 w-3 shrink-0" />
+        {addr.distance_km} km ·{" "}
+        {isFree ? "Free Delivery" : formatINR(addr.shipping_charge ?? 0) + " shipping"}
+      </p>
+    );
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <DashboardLayout
       title="Address Book"
@@ -256,7 +454,7 @@ export default function AddressBook() {
         )
       }
     >
-      {/* Address Form */}
+      {/* ── Address Form ─────────────────────────────────────────────── */}
       {showForm && (
         <form
           onSubmit={handleSubmit}
@@ -294,18 +492,53 @@ export default function AddressBook() {
             <button
               type="button"
               onClick={detectLocation}
-              disabled={locating}
+              disabled={locating || calculating}
               className="inline-flex items-center gap-2 border border-gold/40 text-gold px-4 py-2 text-[10px] uppercase tracking-widest hover:bg-gold/5 transition-colors disabled:opacity-50"
             >
-              {locating ? (
+              {locating || calculating ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Navigation className="h-3.5 w-3.5" />
               )}
-              {locating ? "Detecting..." : "Use My Location"}
+              {locating ? "Detecting…" : calculating ? "Calculating distance…" : "Use My Location"}
             </button>
           </div>
 
+          {/* Distance status banner */}
+          {form.latitude && form.longitude && (
+            <div
+              className={`flex items-center gap-3 px-4 py-3 border text-sm rounded-sm ${
+                calculating
+                  ? "border-gold/30 bg-gold/5 text-gold"
+                  : form.distance_status === "success"
+                    ? "border-emerald-200 bg-emerald-50/50 text-emerald-700"
+                    : form.distance_status === "failed"
+                      ? "border-destructive/30 bg-destructive/5 text-destructive"
+                      : "border-border bg-champagne/5 text-muted-foreground"
+              }`}
+            >
+              {calculating ? (
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+              ) : form.distance_status === "success" ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+              ) : (
+                <XCircle className="h-4 w-4 shrink-0" />
+              )}
+              <span>
+                {calculating
+                  ? "Calculating road distance from store…"
+                  : form.distance_status === "success"
+                    ? `${form.distance_km} km from store · ${
+                        (form.distance_km ?? 0) <= FREE_DELIVERY_MAX_KM
+                          ? "Free Delivery ✓"
+                          : `Delivery charge: ${formatINR(form.shipping_charge ?? 0)}`
+                      }`
+                    : "Distance calculation failed — address cannot be saved. Please try 'Use My Location' again."}
+              </span>
+            </div>
+          )}
+
+          {/* Name + Phone */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="eyebrow mb-1 block">Recipient Name</span>
@@ -413,26 +646,47 @@ export default function AddressBook() {
             <span className="text-sm text-muted-foreground">Set as default delivery address</span>
           </label>
 
-          <div className="flex gap-3 justify-end pt-2">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-5 py-3 text-xs uppercase tracking-wider text-muted-foreground border border-border hover:border-foreground transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-foreground text-background px-8 py-3 text-xs uppercase tracking-widest font-medium transition-colors hover:bg-gold hover:text-gold-foreground disabled:opacity-50"
-            >
-              {saving ? "Saving..." : editId ? "Update Address" : "Save Address"}
-            </button>
+          {/* Save button + distance guard message */}
+          <div className="space-y-2">
+            {!form.latitude && !form.longitude && (
+              <p className="text-xs text-amber-600 flex items-center gap-1.5">
+                <Navigation className="h-3 w-3 shrink-0" />
+                Click &ldquo;Use My Location&rdquo; to auto-detect coordinates and calculate
+                shipping distance. Distance must be calculated before saving.
+              </p>
+            )}
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-5 py-3 text-xs uppercase tracking-wider text-muted-foreground border border-border hover:border-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSaveBlocked}
+                title={
+                  form.distance_status !== "success"
+                    ? "Please calculate shipping distance first using 'Use My Location'"
+                    : undefined
+                }
+                className="bg-foreground text-background px-8 py-3 text-xs uppercase tracking-widest font-medium transition-colors hover:bg-gold hover:text-gold-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving
+                  ? "Saving…"
+                  : calculating
+                    ? "Calculating…"
+                    : editId
+                      ? "Update Address"
+                      : "Save Address"}
+              </button>
+            </div>
           </div>
         </form>
       )}
 
-      {/* Address List */}
+      {/* ── Address List ──────────────────────────────────────────────── */}
       {loading && addresses.length === 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {[1, 2].map((i) => (
@@ -476,6 +730,9 @@ export default function AddressBook() {
                 {addr.country}
               </p>
               <p className="text-xs text-muted-foreground mt-2 ml-6">📞 {addr.phone}</p>
+
+              {/* Distance badge */}
+              <DistanceBadge addr={addr} />
 
               <div className="mt-4 pt-4 border-t border-border flex gap-3 flex-wrap">
                 <button

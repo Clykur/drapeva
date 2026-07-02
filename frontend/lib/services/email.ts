@@ -51,7 +51,7 @@ export class EmailService {
             <p>Dear ${name},</p>
             <p>We are delighted to confirm receipt of your order <strong>#${orderId}</strong>.</p>
             <p>Order Total: <strong>₹${total.toLocaleString("en-IN")}</strong></p>
-            <p>Estimated Delivery: <strong>10–15 Business Days</strong></p>
+            <p>Estimated Delivery: <strong>Based on shipping distance (Free within 1,000 km)</strong></p>
             <p style="font-size: 0.85rem; color: #8c7853; line-height: 1.6;">With compliments,<br/>The Drapeva Concierge Team</p>
           </div>
         `;
@@ -59,7 +59,12 @@ export class EmailService {
       }
 
       // Convert order items to required format
-      const items = Array.isArray(order.items) ? order.items : [];
+      const rawItems = Array.isArray(order.items) ? order.items : [];
+      const items = rawItems.map((item: any) => ({
+        ...item,
+        name: item.name || item.product_name,
+        image: item.image || item.product_image,
+      }));
 
       const orderData = {
         items,

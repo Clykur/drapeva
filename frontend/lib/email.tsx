@@ -7,8 +7,21 @@ import { OrderDeliveredEmail } from "@/components/emails/OrderDeliveredEmail";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 // Check and update email logs to prevent duplicate sending
-async function markEmailAsSent(orderId: string, emailType: string): Promise<boolean> {
+async function markEmailAsSent(
+  orderId: string,
+  emailType: string,
+  caller: string,
+): Promise<boolean> {
   try {
+    const stackLines = new Error().stack?.split("\n") || [];
+    const callerStack = stackLines
+      .slice(2, 6)
+      .map((line) => line.trim())
+      .join(" -> ");
+    console.log(
+      `[Email Service Trace] Request to send "${emailType}" for order ${orderId} | Caller: "${caller}" | Stack: ${callerStack}`,
+    );
+
     const supabase = getSupabaseAdmin();
     const { data: order, error: fetchError } = await supabase
       .from("orders")
@@ -29,17 +42,19 @@ async function markEmailAsSent(orderId: string, emailType: string): Promise<bool
     // If already sent, skip sending
     if (logs.includes(emailType)) {
       console.log(
-        `[Email Service] Email type "${emailType}" already sent for order: ${orderId}. Skipping.`,
+        `[Email Service Aborted] Email type "${emailType}" already sent for order: ${orderId}. Skipping. (Triggered by: "${caller}")`,
       );
       return true; // Already processed
     }
 
-    // Update with new log
+    // Update with new log atomically, only if the column does not already contain the value
     const updatedLogs = [...logs, emailType];
-    const { error: updateError } = await supabase
+    const { data: updatedOrder, error: updateError } = await supabase
       .from("orders")
       .update({ email_sent_logs: updatedLogs })
-      .eq("id", orderId);
+      .eq("id", orderId)
+      .not("email_sent_logs", "cs", JSON.stringify([emailType]))
+      .select();
 
     if (updateError) {
       console.error(
@@ -47,6 +62,14 @@ async function markEmailAsSent(orderId: string, emailType: string): Promise<bool
         updateError,
       );
       return false;
+    }
+
+    // If updatedOrder is empty, the row didn't match the .not() condition because another call already updated it
+    if (!updatedOrder || updatedOrder.length === 0) {
+      console.warn(
+        `[Email Service Concurrency Guard] Duplicate prevention triggered! Email type "${emailType}" was already sent for order: ${orderId}. Skipping. (Triggered by: "${caller}")`,
+      );
+      return true; // Already processed by concurrent request
     }
 
     return false; // Email has NOT been sent before; proceed to send
@@ -114,7 +137,11 @@ export async function sendOrderConfirmationToCustomer(
     }
 
     // 1. Prevent duplicate email sending
-    const alreadySent = await markEmailAsSent(orderId, "customer_confirmation");
+    const alreadySent = await markEmailAsSent(
+      orderId,
+      "customer_confirmation",
+      "sendOrderConfirmationToCustomer",
+    );
     if (alreadySent) {
       console.log(
         `[Email Service] Customer confirmation already sent to ${to} for order ${orderId}.`,
@@ -172,7 +199,11 @@ export async function sendAdminOrderNotification(
   console.log(`[Email Service] sendAdminOrderNotification: Order ${orderId}`);
   try {
     // 1. Prevent duplicate email sending
-    const alreadySent = await markEmailAsSent(orderId, "admin_notification");
+    const alreadySent = await markEmailAsSent(
+      orderId,
+      "admin_notification",
+      "sendAdminOrderNotification",
+    );
     if (alreadySent) {
       console.log(`[Email Service] Admin notification already sent for order ${orderId}.`);
       return { status: "already_sent" };
@@ -247,7 +278,7 @@ export async function sendOrderShippedEmail(
     }
 
     // 1. Prevent duplicate email sending
-    const alreadySent = await markEmailAsSent(orderId, "order_shipped");
+    const alreadySent = await markEmailAsSent(orderId, "order_shipped", "sendOrderShippedEmail");
     if (alreadySent) {
       console.log(`[Email Service] Shipping email already sent to ${to} for order ${orderId}.`);
       return { status: "already_sent" };
@@ -315,7 +346,11 @@ export async function sendOrderDeliveredEmail(
     }
 
     // 1. Prevent duplicate email sending
-    const alreadySent = await markEmailAsSent(orderId, "order_delivered");
+    const alreadySent = await markEmailAsSent(
+      orderId,
+      "order_delivered",
+      "sendOrderDeliveredEmail",
+    );
     if (alreadySent) {
       console.log(`[Email Service] Delivery email already sent to ${to} for order ${orderId}.`);
       return { status: "already_sent" };
@@ -345,6 +380,80 @@ export async function sendOrderDeliveredEmail(
     return await sendEmailDirect(to, "Your Drapeva Order has been Delivered ❤️", emailHtml);
   } catch (err) {
     console.error(`[Email Service] sendOrderDeliveredEmail failed for ${to}:`, err);
+    return null;
+  }
+}
+
+export async function sendAdminOrderCancellationAlert(
+  orderId: string,
+  orderData: {
+    customerName: string;
+    customerEmail: string;
+    orderNumber: string;
+    total: number;
+  },
+) {
+  const adminEmail = "drapeva2026@gmail.com";
+  console.log(`[Email Service] sendAdminOrderCancellationAlert: Order ${orderId}`);
+  try {
+    // 1. Prevent duplicate email sending
+    const alreadySent = await markEmailAsSent(
+      orderId,
+      "admin_cancellation_alert",
+      "sendAdminOrderCancellationAlert",
+    );
+    if (alreadySent) {
+      console.log(`[Email Service] Admin cancellation alert already sent for order ${orderId}.`);
+      return { status: "already_sent" };
+    }
+
+    // 2. Render HTML Email
+    const emailHtml = `
+      <div style="font-family: 'Playfair Display', Georgia, serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #faf9f6; color: #1a1612; border: 1px solid #e2dcd0;">
+        <h1 style="text-align: center; letter-spacing: 0.15em; font-weight: 400; text-transform: uppercase;">DRAPEVA</h1>
+        <p style="text-align: center; font-size: 0.75rem; letter-spacing: 0.25em; text-transform: uppercase; color: #8c7853; margin-top: -10px;">Curated Heritage</p>
+        <hr style="border: 0; border-top: 1px solid #e2dcd0; margin: 30px 0;" />
+        <h2 style="text-align: center; font-weight: 400; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.1em;">Order Cancelled by Customer</h2>
+        <p>An order has been cancelled by the customer. Below are the details:</p>
+        <table width="100%" style="border-collapse: collapse; margin-top: 20px; font-size: 14px;">
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0; font-weight: bold; width: 150px;">Order Number:</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0;">${orderData.orderNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0; font-weight: bold;">Customer Name:</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0;">${orderData.customerName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0; font-weight: bold;">Customer Email:</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0;">${orderData.customerEmail}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0; font-weight: bold;">Total Amount:</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0; color: #8c7853; font-weight: bold;">₹${orderData.total.toLocaleString("en-IN")}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0; font-weight: bold;">Cancelled At:</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e2dcd0;">${new Date().toLocaleString("en-IN")}</td>
+          </tr>
+        </table>
+        <p style="margin-top: 30px; font-size: 13px; color: #78716c;">
+          Please review the order details in your admin dashboard.
+        </p>
+      </div>
+    `;
+
+    // 3. Dispatch
+    return await sendEmailDirect(
+      adminEmail,
+      `ALERT: Order #${orderData.orderNumber} Cancelled by Customer`,
+      emailHtml,
+    );
+  } catch (err) {
+    console.error(
+      `[Email Service] sendAdminOrderCancellationAlert failed for order ${orderId}:`,
+      err,
+    );
     return null;
   }
 }
@@ -417,5 +526,17 @@ export class EmailService {
     },
   ) {
     return await sendOrderDeliveredEmail(to, name, orderId, deliveryData);
+  }
+
+  static async sendOrderCancellationAlert(
+    orderId: string,
+    orderData: {
+      customerName: string;
+      customerEmail: string;
+      orderNumber: string;
+      total: number;
+    },
+  ) {
+    return await sendAdminOrderCancellationAlert(orderId, orderData);
   }
 }

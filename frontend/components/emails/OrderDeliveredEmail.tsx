@@ -116,11 +116,29 @@ export const OrderDeliveredEmail: React.FC<OrderDeliveredEmailProps> = ({
                 fontSize: "15px",
                 lineHeight: "1.6",
                 color: "#555555",
-                margin: "0 0 30px 0",
+                margin: "0 0 20px 0",
               }}
             >
               We hope your new couture saree brings elegance and grace to your moments. It has been
               our privilege to craft this heirloom for you.
+            </p>
+            <p
+              style={{
+                fontSize: "13px",
+                lineHeight: "1.6",
+                color: "#777777",
+                padding: "15px",
+                backgroundColor: "#fcfbf9",
+                border: "1px solid #e2dcd0",
+                margin: "0 0 30px 0",
+                fontStyle: "italic",
+              }}
+            >
+              Every order undergoes careful quality inspection and secure packaging before dispatch.
+              Delivery timelines may vary depending on your shipping location. Orders within 1,000
+              km qualify for free delivery, while a delivery charge applies to destinations beyond
+              1,000 km. Tracking details will be shared via SMS and email once your order has been
+              dispatched.
             </p>
           </td>
         </tr>

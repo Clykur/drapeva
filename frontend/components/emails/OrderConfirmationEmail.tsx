@@ -130,12 +130,29 @@ export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
                 fontSize: "15px",
                 lineHeight: "1.6",
                 color: "#555555",
-                margin: "0 0 30px 0",
+                margin: "0 0 20px 0",
               }}
             >
               Thank you for choosing Drapeva. We are delighted to confirm that your order{" "}
-              <strong>#{orderCode}</strong> has been successfully placed. Our trusted partner
-              weavers and artisans have commenced preparing your curated handcrafted masterpiece.
+              <strong>#{orderCode}</strong> has been successfully placed.
+            </p>
+            <p
+              style={{
+                fontSize: "14px",
+                lineHeight: "1.6",
+                color: "#666666",
+                padding: "20px",
+                backgroundColor: "#fcfbf9",
+                border: "1px solid #e2dcd0",
+                margin: "0 0 30px 0",
+                fontStyle: "italic",
+              }}
+            >
+              Every order undergoes careful quality inspection and secure packaging before dispatch.
+              Delivery timelines may vary depending on your shipping location. Orders within 1,000
+              km qualify for free delivery, while a delivery charge applies to destinations beyond
+              1,000 km. Tracking details will be shared via SMS and email once your order has been
+              dispatched.
             </p>
           </td>
         </tr>
@@ -338,7 +355,7 @@ export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
                     Estimated Delivery
                   </h4>
                   <p style={{ fontSize: "13px", color: brandGold, fontWeight: "bold", margin: 0 }}>
-                    10–15 Business Days
+                    Distance-based (Free within 1,000 km)
                   </p>
                 </td>
               </tr>
