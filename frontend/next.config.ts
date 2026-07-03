@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone", // required for Docker runner stage (produces .next/standalone/server.js)
   images: {
     remotePatterns: [
       {
