@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+frontend/.next
+**/.next
+
+# Environment files (injected at runtime via secrets)
+.env
+.env.*
+!.env.example
+
+# Version control
+.git
+.gitignore
+.github
+
+# Editor / OS artefacts
+.DS_Store
+.vscode
+.idea
+*.suo
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Test & coverage
+coverage
+**/*.test.ts
+**/*.spec.ts
+
+# Misc
+*.md
+migration.log
+supabase/.temp
