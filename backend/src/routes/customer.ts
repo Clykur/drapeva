@@ -47,7 +47,7 @@ router.get(
         orderBy: { createdAt: "desc" },
         take: 12,
       });
-      res.json(items.map((i) => i.product));
+      res.json(items.map((i: any) => i.product));
     } catch (err) {
       next(err);
     }
@@ -88,7 +88,7 @@ router.get(
         orderBy: { createdAt: "desc" },
         take: 10,
       });
-      res.json(Array.from(new Set(searches.map((s) => s.keyword))));
+      res.json(Array.from(new Set(searches.map((s: any) => s.keyword))));
     } catch (err) {
       next(err);
     }
