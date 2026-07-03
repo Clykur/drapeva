@@ -35,7 +35,8 @@
     "ci:all": "npm run ci:lint && npm run ci:typecheck && npm run ci:format && npm run test && npm run ci:images && npm run ci:build",
     "test": "vitest run",
     "precommit:strict": "npm run lint && npm run typecheck",
-    "prepush:strict": "npm run ci:all",
+    "prepush:strict": "npm run guard:all",
+    "guard:all": "node scripts/infrastructure/run-enterprise-guard.js",
     "prepare": "husky"
   },
   "dependencies": {

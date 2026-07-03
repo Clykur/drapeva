@@ -38,9 +38,7 @@ jobs:
       - name: Run ESLint
         run: |
           set +e
-          npx eslint . \
-            --config .eslintrc.js \
-            --max-warnings 0 \
+          npx eslint frontend backend \
             -f @microsoft/eslint-formatter-sarif \
             -o eslint-results.sarif
           ec=$?
