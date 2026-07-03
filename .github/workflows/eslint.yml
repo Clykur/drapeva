@@ -1,0 +1,57 @@
+# ESLint with SARIF upload to GitHub Code Scanning (same paths as npm run lint:strict).
+# Uses the repo's ESLint config and lockfile for consistent results.
+
+name: ESLint
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+  schedule:
+    - cron: '39 9 * * 3'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  eslint:
+    name: Run ESLint (SARIF)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install SARIF formatter
+        run: npm install --no-save @microsoft/eslint-formatter-sarif@3.1.0
+
+      - name: Run ESLint
+        run: |
+          set +e
+          npx eslint . \
+            --config .eslintrc.js \
+            --max-warnings 0 \
+            -f @microsoft/eslint-formatter-sarif \
+            -o eslint-results.sarif
+          ec=$?
+          if [ ! -s eslint-results.sarif ]; then
+            printf '%s\n' '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"eslint","informationUri":"https://eslint.org"}},"results":[]}]}' > eslint-results.sarif
+          fi
+          exit "$ec"
+
+      - name: Upload SARIF to GitHub Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: eslint-results.sarif
+          wait-for-processing: true
