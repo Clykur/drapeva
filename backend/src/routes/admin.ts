@@ -24,7 +24,10 @@ router.get(
         },
         select: { total: true },
       });
-      const todaySales = todayOrders.reduce((sum, o) => sum + o.total, 0);
+      const todaySales = todayOrders.reduce(
+        (sum: number, o: { total: number }) => sum + o.total,
+        0,
+      );
 
       // Monthly Revenue
       const monthlyOrders = await prisma.order.findMany({
@@ -34,7 +37,10 @@ router.get(
         },
         select: { total: true },
       });
-      const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + o.total, 0);
+      const monthlyRevenue = monthlyOrders.reduce(
+        (sum: number, o: { total: number }) => sum + o.total,
+        0,
+      );
 
       // Order Status breakdown counts
       const statusCounts = await prisma.order.groupBy({
@@ -42,7 +48,7 @@ router.get(
         _count: { id: true },
       });
       const statusMap = statusCounts.reduce(
-        (acc, curr) => {
+        (acc: Record<string, number>, curr: { status: string; _count: { id: number } }) => {
           acc[curr.status] = curr._count.id;
           return acc;
         },
@@ -84,7 +90,7 @@ router.get(
         deliveredOrders: statusMap["DELIVERED"] || 0,
         cancelledOrders: statusMap["CANCELLED"] || 0,
         lowStockCount: lowStockProducts.length,
-        lowStockProducts: lowStockProducts.map((v) => ({
+        lowStockProducts: lowStockProducts.map((v: any) => ({
           id: v.id,
           name: v.product.name,
           size: v.size,

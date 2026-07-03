@@ -622,9 +622,9 @@ router.post(
       }
 
       let refundAmount = 0;
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         for (const itemId of itemIds) {
-          const item = order.items.find((i) => i.id === itemId);
+          const item = order.items.find((i: any) => i.id === itemId);
           if (!item) throw new Error(`Item ${itemId} not found in this order`);
 
           // Restock variant
@@ -664,7 +664,7 @@ router.post(
           });
         } else {
           const newSubtotal = remainingItems.reduce(
-            (acc, curr) => acc + curr.price * curr.quantity,
+            (acc: number, curr: any) => acc + curr.price * curr.quantity,
             0,
           );
           const newTax = newSubtotal * 0.05;
@@ -802,7 +802,7 @@ router.post(
             <tbody>
               ${order.items
                 .map(
-                  (item) => `
+                  (item: any) => `
                 <tr style="border-bottom: 1px solid #ddd;">
                   <td>${item.variant.product.name} (${item.variant.size})</td>
                   <td>${item.quantity}</td>
@@ -860,7 +860,7 @@ router.post(
         return res.status(400).json({ error: "Only PENDING orders can be verified manually" });
       }
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         await tx.order.update({
           where: { id },
           data: { status: "PROCESSING" },

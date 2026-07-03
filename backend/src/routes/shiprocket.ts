@@ -64,7 +64,7 @@ router.post(
         return res.status(400).json({ error: "Shipment already created for this order" });
       }
 
-      const orderItems = order.items.map((item) => ({
+      const orderItems = order.items.map((item: any) => ({
         name: item.variant.product.name,
         sku: item.variant.sku,
         units: item.quantity,

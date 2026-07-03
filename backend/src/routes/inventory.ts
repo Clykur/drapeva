@@ -19,7 +19,7 @@ router.post(
     const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
 
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: any) => {
         const variant = await tx.productVariant.findUnique({
           where: { id: variantId },
           include: { product: true },
@@ -74,7 +74,7 @@ router.post(
     if (!reservationId) return res.status(400).json({ error: "reservationId is required" });
 
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: any) => {
         const resv = await tx.inventoryReservation.findUnique({ where: { id: reservationId } });
         if (!resv) throw new Error("Reservation not found");
         if (resv.isReleased) throw new Error("Reservation already released");
@@ -141,7 +141,7 @@ router.post(
     }
 
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         for (const update of updates) {
           const { variantId, quantity } = update;
           const variant = await tx.productVariant.findUnique({ where: { id: variantId } });
@@ -206,7 +206,7 @@ export async function releaseExpiredReservations() {
 
     for (const resv of expiredReservations) {
       try {
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: any) => {
           // Increment stock back
           await tx.productVariant.update({
             where: { id: resv.variantId },
