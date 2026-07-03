@@ -31,7 +31,12 @@
     "ci:format": "npm run format:check",
     "ci:build": "npm run build",
     "ci:images": "node scripts/optimize-images.mjs --dry-run",
-    "ci:local": "npm run ci:lint && npm run ci:typecheck && npm run ci:format && npm run ci:build && npm run ci:images"
+    "ci:local": "npm run ci:lint && npm run ci:typecheck && npm run ci:format && npm run ci:build && npm run ci:images",
+    "ci:all": "npm run ci:lint && npm run ci:typecheck && npm run ci:format && npm run test && npm run ci:images && npm run ci:build",
+    "test": "vitest run",
+    "precommit:strict": "npm run lint && npm run typecheck",
+    "prepush:strict": "npm run ci:all",
+    "prepare": "husky"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -40,6 +45,8 @@
   "devDependencies": {
     "concurrently": "^10.0.3",
     "eslint-config-next": "^16.2.9",
-    "sharp": "^0.34.5"
+    "husky": "^9.0.0",
+    "sharp": "^0.34.5",
+    "vitest": "^4.1.9"
   }
 }
