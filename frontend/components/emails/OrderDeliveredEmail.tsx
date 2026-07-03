@@ -171,7 +171,7 @@ export const OrderDeliveredEmail: React.FC<OrderDeliveredEmailProps> = ({
               fit, and purchase experience.
             </p>
             <a
-              href="http://localhost:3000/account/orders"
+              href={`${process.env.NEXT_PUBLIC_APP_URL || "https://drapeva.in"}/account/orders`}
               target="_blank"
               rel="noopener noreferrer"
               style={{

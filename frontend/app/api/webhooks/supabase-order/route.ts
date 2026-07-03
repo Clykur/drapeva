@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { EmailService } from "@/lib/services/email";
-import { WhatsAppService } from "@/lib/services/whatsapp";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 // Uses ZeptoMail (Node.js HTTP) — pin to Node.js runtime.
 export const runtime = "nodejs";
@@ -28,6 +28,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid webhook payload structure" }, { status: 400 });
     }
 
+    const webhookKey = `webhook-${type}-${record.id}-${record.status || record.payment_status}`;
+    const supabaseAdmin = getSupabaseAdmin() as any;
+
+    // Check if webhook already processed
+    const { data: existing } = await supabaseAdmin
+      .from("IdempotencyRequest")
+      .select("*")
+      .eq("key", webhookKey)
+      .maybeSingle();
+
+    if (existing) {
+      console.log(`[Supabase Webhook] Key match found: ${webhookKey}. Returning cached response.`);
+      return NextResponse.json(JSON.parse(existing.responseBody), {
+        status: existing.responseStatus,
+        headers: { "X-Cache-Idempotency": "true" },
+      });
+    }
+
     console.log(`[Supabase Webhook] Received event type: ${type} for order ${record.id}`);
 
     // A. Cash on Delivery Confirmation
@@ -39,13 +57,6 @@ export async function POST(request: Request) {
         record.total,
       );
 
-      if (record.customer_phone) {
-        await WhatsAppService.sendOrderUpdate(
-          record.customer_phone,
-          record.order_number || record.id,
-          "pending",
-        );
-      }
       console.log(
         `[Supabase Webhook] Dispatched COD confirmation notifications for order ${record.id}`,
       );
@@ -69,19 +80,20 @@ export async function POST(request: Request) {
         `,
       );
 
-      if (record.customer_phone) {
-        await WhatsAppService.sendOrderUpdate(
-          record.customer_phone,
-          record.order_number || record.id,
-          record.status,
-        );
-      }
       console.log(
         `[Supabase Webhook] Dispatched status update notifications for order ${record.id} -> ${record.status}`,
       );
     }
 
-    return NextResponse.json({ status: "ok" });
+    const resPayload = { status: "ok" };
+    await supabaseAdmin.from("IdempotencyRequest").insert({
+      id: crypto.randomUUID(),
+      key: webhookKey,
+      responseStatus: 200,
+      responseBody: JSON.stringify(resPayload),
+    });
+
+    return NextResponse.json(resPayload);
   } catch (err: any) {
     console.error(`[Supabase Webhook Error] ${err.message}`);
     return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });

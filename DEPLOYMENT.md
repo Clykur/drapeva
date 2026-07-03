@@ -28,8 +28,6 @@ Add these variables in your Vercel Project Settings (`Settings` -> `Environment 
 | `ZEPTOMAIL_API_KEY`             | ZeptoMail API key for sending emails                  | `your_zeptomail_api_key`              |
 | `ZEPTOMAIL_FROM_EMAIL`          | Verified sender email address                         | `onboarding@yourdomain.com`           |
 | `ZEPTOMAIL_FROM_NAME`           | Sender name                                           | `Drapeva`                             |
-| `WHATSAPP_API_TOKEN`            | WhatsApp Cloud API System User Access Token           | `EAAG...`                             |
-| `WHATSAPP_PHONE_NUMBER_ID`      | WhatsApp Business Phone Number ID                     | `123456789012345`                     |
 | `NEXT_PUBLIC_API_URL`           | Target endpoint of the Express Payment REST API       | `https://your-api.onrender.com`       |
 | `NEXT_PUBLIC_APP_URL`           | Application root URL (for email redirect links)       | `https://drapeva.com`                 |
 | `ORDER_WEBHOOK_SECRET`          | Header secret verifying Supabase order state webhooks | `your-order-webhook-secret`           |
@@ -56,8 +54,6 @@ Add these variables in your Render Web Service Settings (`Environment` tab).
 | `ZEPTOMAIL_API_KEY`         | ZeptoMail API key for sending emails                             | `your_zeptomail_api_key`                                          |
 | `ZEPTOMAIL_FROM_EMAIL`      | Verified sender email address for notifications                  | `onboarding@yourdomain.com`                                       |
 | `ZEPTOMAIL_FROM_NAME`       | Sender name for notifications                                    | `Drapeva`                                                         |
-| `WHATSAPP_API_TOKEN`        | WhatsApp Cloud API Token for order notification texts            | `EAAG...`                                                         |
-| `WHATSAPP_PHONE_NUMBER_ID`  | WhatsApp Business Phone ID for notification texts                | `123456789012345`                                                 |
 | `FRONTEND_URL`              | Allowed CORS origin (points to your Vercel deployment domain)    | `https://drapeva.com`                                             |
 | `STRIPE_SECRET_KEY`         | Stripe Secret API Key (optional / mocked fallback)               | `sk_live_...`                                                     |
 

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { EmailService } from "@/lib/services/email";
-import { WhatsAppService } from "@/lib/services/whatsapp";
 
 // This route uses Node.js crypto — must run on Node.js runtime, not Edge.
 export const runtime = "nodejs";
@@ -93,14 +92,6 @@ export async function POST(request: Request) {
           updatedOrder.id,
           updatedOrder.total,
         );
-
-        if (updatedOrder.customer_phone) {
-          await WhatsAppService.sendOrderUpdate(
-            updatedOrder.customer_phone,
-            updatedOrder.order_number || updatedOrder.id,
-            "processing",
-          );
-        }
       } catch (notifyErr) {
         console.error("Failed to send webhook order confirmation notifications:", notifyErr);
       }

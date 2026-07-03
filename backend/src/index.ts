@@ -1,41 +1,27 @@
 import "./config/env.js";
-
-// Validate required environment variables
-const criticalEnv = ["DATABASE_URL", "JWT_SECRET", "JWT_REFRESH_SECRET"];
-const recommendedEnv = ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "STRIPE_SECRET_KEY"];
-
-const missingCritical = criticalEnv.filter((envVar) => !process.env[envVar]);
-if (missingCritical.length > 0) {
-  const timestamp = new Date().toISOString();
-  console.error(
-    `[${timestamp}] FATAL: Missing critical environment variables: ${missingCritical.join(", ")}. Server cannot start.`,
-  );
-  process.exit(1);
-}
-
-const missingRecommended = recommendedEnv.filter((envVar) => !process.env[envVar]);
-if (missingRecommended.length > 0) {
-  const timestamp = new Date().toISOString();
-  console.warn(
-    `[${timestamp}] WARNING: Missing recommended environment variables: ${missingRecommended.join(", ")}`,
-  );
-}
-
 import app from "./app.js";
+import { startBackupScheduler } from "./utils/backup.js";
+import { startInventoryScheduler } from "./routes/inventory.js";
+import { initializeDatabase } from "./config/prisma.js";
+import { logger } from "./utils/logger.js";
 
 const PORT = process.env.PORT || 5000;
 
+// Initialize DB extensions and start background schedulers
+initializeDatabase().catch((err) => logger.error("DB Init failed", { message: err.message }));
+startBackupScheduler();
+startInventoryScheduler();
+
 const server = app.listen(PORT, () => {
-  console.log(`=========================================`);
-  console.log(`  DRAPEVA BACKEND SERVER RUNNING         `);
-  console.log(`  Port: ${PORT}                          `);
-  console.log(`  Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`=========================================`);
+  logger.info("DRAPEVA Backend Server started", {
+    port: Number(PORT),
+    env: process.env.NODE_ENV || "development",
+  });
 });
 
 process.on("SIGTERM", () => {
-  console.log("SIGTERM received. Shutting down gracefully...");
+  logger.info("SIGTERM received — shutting down gracefully");
   server.close(() => {
-    console.log("Process terminated.");
+    logger.info("Server shut down cleanly");
   });
 });

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { PaymentService } from "@/lib/services/payment";
 import { EmailService } from "@/lib/services/email";
-import { WhatsAppService } from "@/lib/services/whatsapp";
 
 // Razorpay SDK uses Node.js crypto \u2014 must run on Node.js runtime.
 export const runtime = "nodejs";
@@ -68,14 +67,6 @@ export async function POST(request: Request) {
         order.id,
         order.total,
       );
-
-      if (order.customer_phone) {
-        await WhatsAppService.sendOrderUpdate(
-          order.customer_phone,
-          order.order_number || order.id,
-          "processing",
-        );
-      }
     } catch (notifyErr) {
       console.error("Failed to send payment verification notifications:", notifyErr);
     }

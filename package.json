@@ -20,7 +20,8 @@
     "format:check": "npm run format:check -w frontend",
     "clean": "npm run clean -w frontend && rm -rf node_modules",
     "seed:supabase": "node frontend/scripts/seed-supabase.cjs",
-    "db:seed": "npm run db:seed -w backend"
+    "db:seed": "npm run db:seed -w backend",
+    "db:push": "npm run db:push -w backend"
   },
   "dependencies": {
     "express": "^5.2.1",

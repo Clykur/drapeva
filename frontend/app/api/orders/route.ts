@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { EmailService } from "@/lib/services/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { checkIdempotency, saveIdempotency } from "@/lib/idempotency";
 
 // Uses Supabase SSR cookie APIs — pin to Node.js runtime.
 export const runtime = "nodejs";
@@ -25,6 +26,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const { key, cachedResponse } = await checkIdempotency(request);
+    if (cachedResponse) return cachedResponse;
+
     const body = await request.json();
 
     // Authenticate user if they are logged in (optional but good practice)
@@ -81,6 +85,10 @@ export async function POST(request: Request) {
       });
     } catch (auditErr) {
       console.error("[POST /api/orders] Failed to create audit log:", auditErr);
+    }
+
+    if (key) {
+      await saveIdempotency(key, 201, order);
     }
 
     return NextResponse.json(order, { status: 201 });

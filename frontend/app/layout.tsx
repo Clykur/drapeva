@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import Script from "next/script";
 import "./styles.css";
 import Providers from "./providers";
 import { SiteHeader } from "@/components/site-header";
@@ -156,6 +157,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const ga4Id = process.env.NEXT_PUBLIC_GA4_ID;
+
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
@@ -163,9 +166,6 @@ export default function RootLayout({
         <meta name="geo.placename" content="Bengaluru" />
         <meta name="geo.position" content="12.9097;77.7126" />
         <meta name="ICBM" content="12.9097, 77.7126" />
-        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-        <meta httpEquiv="Pragma" content="no-cache" />
-        <meta httpEquiv="Expires" content="0" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -175,6 +175,24 @@ export default function RootLayout({
         className="antialiased min-h-screen bg-background text-foreground"
         suppressHydrationWarning
       >
+        {/* Google Analytics GA4 */}
+        {ga4Id && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${ga4Id}', { page_path: window.location.pathname });
+              `}
+            </Script>
+          </>
+        )}
+
         <Providers>
           <div className="flex flex-col min-h-screen">
             <Suspense fallback={<div className="h-[72px] md:h-[88px] bg-background" />}>

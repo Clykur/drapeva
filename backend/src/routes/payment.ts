@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Router, Response } from "express";
 import { PaymentService } from "../services/payment.js";
 import { EmailService } from "../services/email.js";
-import { WhatsAppService } from "../services/whatsapp.js";
 import { getSupabaseClient } from "../services/supabase.js";
 
 const router = Router();
@@ -162,11 +162,6 @@ router.post("/verify", authenticateSupabase, async (req: any, res: Response) => 
         order.id,
         order.total,
       );
-
-      const phone = order.customer_phone || order.phone;
-      if (phone) {
-        await WhatsAppService.sendOrderUpdate(phone, order.id, "processing");
-      }
     } catch (notifyErr) {
       console.error("Failed to send payment verification notifications:", notifyErr);
     }

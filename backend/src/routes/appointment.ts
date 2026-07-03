@@ -1,16 +1,17 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import prisma from "../config/prisma.js";
-import { authenticateJWT, requireRole, AuthenticatedRequest } from "../middlewares/auth.js";
+import { authenticateJWT, requireRole } from "../middlewares/auth.js";
 import { EmailService } from "../services/email.js";
-import { WhatsAppService } from "../services/whatsapp.js";
+
+import { CommonSchemas } from "../utils/schemas.js";
 
 const router = Router();
 
 const AppointmentSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string(),
+  name: CommonSchemas.name,
+  email: CommonSchemas.email,
+  phone: CommonSchemas.phone,
   date: z.string(), // ISO string
   timeSlot: z.string(),
   type: z.enum(["IN_PERSON", "VIDEO"]),
@@ -42,7 +43,6 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       day: "numeric",
     });
 
-    // Send Confirmations
     await EmailService.sendAppointmentConfirmation(
       data.email,
       data.name,
@@ -50,7 +50,6 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       data.timeSlot,
       data.type,
     );
-    await WhatsAppService.sendAppointmentReminder(data.phone, data.name, dateStr, data.timeSlot);
 
     res.status(201).json(appointment);
   } catch (err) {
