@@ -128,7 +128,7 @@ export class EmailService {
         <p><strong>Date:</strong> ${dateStr}</p>
         <p><strong>Time Slot:</strong> ${timeSlot}</p>
         <p><strong>Type:</strong> ${type === "VIDEO" ? "Video Consultation" : "In-Person Consultation"}</p>
-        <p>Our concierge will reach out to you shortly via WhatsApp to share details or link invites.</p>
+        <p>Our concierge will reach out to you shortly via email to share details or link invites.</p>
         <p style="font-size: 0.85rem; color: #8c7853; line-height: 1.6;">With compliments,<br/>The Drapeva Concierge Team</p>
       </div>
     `;

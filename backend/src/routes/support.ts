@@ -1,16 +1,18 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import prisma from "../config/prisma.js";
-import { authenticateJWT, requireRole, AuthenticatedRequest } from "../middlewares/auth.js";
+import { authenticateJWT, requireRole } from "../middlewares/auth.js";
 import { EmailService } from "../services/email.js";
 
 import { escapeHTML } from "../utils/sanitize.js";
 
+import { CommonSchemas } from "../utils/schemas.js";
+
 const router = Router();
 
 const TicketSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
+  name: CommonSchemas.name,
+  email: CommonSchemas.email,
   subject: z.string().min(4),
   message: z.string().min(10),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),

@@ -15,8 +15,7 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  const reqAny = req as any;
-  const authHeader = reqAny.headers?.authorization;
+  const authHeader = req.headers?.authorization;
 
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split(" ")[1];
@@ -25,12 +24,12 @@ export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: 
       token,
       JWT_SECRET!,
       { audience: "drapeva-app", issuer: "drapeva-api" },
-      (err: any, decoded: any) => {
-        if (err) {
+      (err, decoded) => {
+        if (err || !decoded) {
           return res.status(403).json({ error: "Invalid or expired token" });
         }
 
-        reqAny.user = decoded as { id: string; email: string; role: "CUSTOMER" | "ADMIN" };
+        req.user = decoded as { id: string; email: string; role: "CUSTOMER" | "ADMIN" };
         next();
       },
     );

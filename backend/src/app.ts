@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { errorHandler } from "./middlewares/error.js";
+import { idempotency } from "./middlewares/idempotency.js";
 import authRoutes from "./routes/auth.js";
 import productRoutes from "./routes/product.js";
 import orderRoutes from "./routes/order.js";
@@ -10,6 +11,14 @@ import appointmentRoutes from "./routes/appointment.js";
 import blogRoutes from "./routes/blog.js";
 import supportRoutes from "./routes/support.js";
 import paymentRoutes from "./routes/payment.js";
+import shiprocketRoutes from "./routes/shiprocket.js";
+import inventoryRoutes from "./routes/inventory.js";
+import customerRoutes from "./routes/customer.js";
+import adminRoutes from "./routes/admin.js";
+import securityRoutes from "./routes/security.js";
+import prisma from "./config/prisma.js";
+import { getRedisStatus } from "./services/redis.js";
+import { logger } from "./utils/logger.js";
 
 const app = express();
 
@@ -23,10 +32,11 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.supabase.co"],
+        connectSrc: ["'self'", "https://api.razorpay.com", "https://app.shiprocket.in"],
         frameAncestors: ["'none'"],
+        upgradeInsecureRequests: [],
       },
     },
     hsts: {
@@ -35,7 +45,7 @@ app.use(
       preload: true,
     },
     referrerPolicy: {
-      policy: "no-referrer",
+      policy: "strict-origin-when-cross-origin",
     },
   }),
 );
@@ -45,26 +55,30 @@ app.use((req, res, next) => {
   res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
+  // Distributed tracing request ID
+  const requestId = req.headers["x-request-id"] || crypto.randomUUID();
+  res.setHeader("X-Request-Id", requestId as string);
   next();
 });
 
-// Logging: Custom request logging middleware
+// Logging: Structured request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
+  const requestId = (req.headers["x-request-id"] as string) || crypto.randomUUID();
   res.on("finish", () => {
-    const duration = Date.now() - start;
-    const timestamp = new Date().toISOString();
-    console.log(
-      `[${timestamp}] ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`,
-    );
+    logger.info(`${req.method} ${req.originalUrl}`, {
+      requestId,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - start,
+    });
   });
   next();
 });
 
-// Security: Rate limiting
+// Security: Global rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 150, // limit each IP to 150 requests per windowMs
+  max: 150,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests from this IP, please try again after 15 minutes" },
@@ -73,11 +87,20 @@ app.use("/api", limiter);
 
 // Strict rate limiter for Authentication endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Limit to 30 requests per 15 minutes per IP
+  windowMs: 15 * 60 * 1000,
+  max: 20, // tightened from 30 to 20
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many login/registration attempts, please try again after 15 minutes" },
+});
+
+// Strict rate limiter for Payment endpoints
+const paymentLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many payment requests, please try again after 10 minutes" },
 });
 
 // CORS Middlewares
@@ -95,6 +118,7 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(idempotency);
 
 // REST Routes
 app.use("/api/auth", authLimiter, authRoutes);
@@ -103,11 +127,45 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/blog", blogRoutes);
 app.use("/api/support", supportRoutes);
-app.use("/api/payments", paymentRoutes);
+app.use("/api/payments", paymentLimiter, paymentRoutes);
+app.use("/api/shiprocket", shiprocketRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/customer", customerRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/security", securityRoutes);
 
-// Health check
-app.get(["/health", "/api/health"], (req: any, res: any) => {
-  res.json({ status: "ok" });
+// Health check & Production readiness check
+app.get(["/health", "/api/health"], async (req: Request, res: Response) => {
+  const redisInfo = getRedisStatus();
+  let dbHealthy: boolean;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbHealthy = true;
+  } catch (_err) {
+    dbHealthy = false;
+  }
+
+  res.json({
+    status: dbHealthy ? "healthy" : "degraded",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    services: {
+      database: dbHealthy ? "up" : "down",
+      cache: redisInfo.isConnected ? "up" : "down",
+    },
+  });
+});
+
+app.get("/api/health/readiness", async (req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ status: "ready" });
+  } catch (err: unknown) {
+    res.status(503).json({
+      status: "not_ready",
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 });
 
 // Error handling

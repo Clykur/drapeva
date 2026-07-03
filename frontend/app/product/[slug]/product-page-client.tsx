@@ -23,7 +23,6 @@ import { productsApi, reviewsApi } from "@/lib/api";
 import { useShop } from "@/lib/store";
 import { ProductCard } from "@/components/product-card";
 import { ProductZoom } from "@/components/product-zoom";
-// import { Product360Viewer } from "@/components/product-360-viewer";
 import { useAuth } from "@/lib/auth-store";
 import { toast } from "sonner";
 
@@ -225,11 +224,6 @@ Thank you!`);
           </div>
           {/* Main Viewer */}
           <div className="order-1 aspect-[3/4] md:order-2 w-full">
-            {/* {view360 ? (
-              <Product360Viewer images={dynamicGallery} />
-            ) : (
-              <ProductZoom src={dynamicGallery[active] || product.image} alt={product.name} />
-            )} */}
             <ProductZoom src={dynamicGallery[active] || product.image} alt={product.name} />
           </div>
         </div>

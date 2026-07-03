@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkIdempotency, saveIdempotency } from "@/lib/idempotency";
 
-// Uses Supabase SSR (Node.js cookie APIs) \u2014 pin to Node.js runtime.
+// Uses Supabase SSR (Node.js cookie APIs) — pin to Node.js runtime.
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const { key, cachedResponse } = await checkIdempotency(request);
+    if (cachedResponse) return cachedResponse;
+
     const { orderId, amount } = await request.json();
     if (!orderId) {
       return NextResponse.json({ error: "orderId is required" }, { status: 400 });
@@ -50,7 +54,12 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, message: "Refund processed successfully" });
+    const resPayload = { success: true, message: "Refund processed successfully" };
+    if (key) {
+      await saveIdempotency(key, 200, resPayload);
+    }
+
+    return NextResponse.json(resPayload);
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
   }

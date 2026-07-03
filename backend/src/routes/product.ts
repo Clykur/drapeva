@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import prisma from "../config/prisma.js";
@@ -300,8 +301,6 @@ router.delete(
   },
 );
 
-import { escapeHTML } from "../utils/sanitize.js";
-
 // 8. Submit Review (Customer Only)
 router.post(
   "/:id/reviews",
@@ -310,23 +309,53 @@ router.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const reqAny = req as any;
     const { id } = reqAny.params;
-    const { rating, title, comment } = reqAny.body;
+    const { rating, title, comment, media } = reqAny.body; // media is an array of { url, type }
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ error: "Rating must be between 1 and 5" });
     }
 
     try {
+      // Check verified purchase status
+      const deliveredOrders = await prisma.order.findMany({
+        where: {
+          userId: reqAny.user!.id,
+          status: "DELIVERED",
+          items: {
+            some: {
+              variant: {
+                productId: id,
+              },
+            },
+          },
+        },
+      });
+
+      const verifiedPurchase = deliveredOrders.length > 0;
+
       const review = await prisma.review.create({
         data: {
           userId: reqAny.user!.id,
           productId: id,
           rating,
-          title: title ? escapeHTML(title) : null,
-          comment: comment ? escapeHTML(comment) : null,
+          title: title ? title : null,
+          comment: comment ? comment : null,
+          verifiedPurchase,
           isApproved: false, // Moderation required
+          moderationStatus: "PENDING",
         },
       });
+
+      // Add media if present
+      if (media && Array.isArray(media) && media.length > 0) {
+        await prisma.reviewMedia.createMany({
+          data: media.map((item: any) => ({
+            reviewId: review.id,
+            url: item.url,
+            type: item.type || "IMAGE",
+          })),
+        });
+      }
 
       res.status(201).json(review);
     } catch (err) {
@@ -335,21 +364,111 @@ router.post(
   },
 );
 
-// 9. Get Approved Reviews for Product
+// 9. Get Reviews for Product with Sorting & Filtering
 router.get("/:id/reviews", async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
+  const { sort, rating } = req.query;
+
   try {
+    const whereClause: any = { productId: id as string, isApproved: true };
+    if (rating) {
+      whereClause.rating = Number(rating);
+    }
+
+    let orderBy: any = { createdAt: "desc" };
+    if (sort === "highest_rating") {
+      orderBy = { rating: "desc" };
+    } else if (sort === "lowest_rating") {
+      orderBy = { rating: "asc" };
+    } else if (sort === "helpful") {
+      orderBy = { helpfulVotes: "desc" };
+    }
+
     const reviews = await prisma.review.findMany({
-      where: { productId: id as string, isApproved: true },
+      where: whereClause,
       include: {
         user: { select: { name: true } },
+        media: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy,
     });
     res.json(reviews);
   } catch (err) {
     next(err);
   }
 });
+
+// 10. Vote Review Helpful
+router.post(
+  "/reviews/:reviewId/helpful",
+  authenticateJWT,
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { reviewId } = req.params as { reviewId: string };
+    try {
+      const updatedReview = await prisma.review.update({
+        where: { id: reviewId },
+        data: {
+          helpfulVotes: { increment: 1 },
+        },
+      });
+      res.json(updatedReview);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// 11. Admin Reply to Review (Admin Only)
+router.post(
+  "/reviews/:reviewId/reply",
+  authenticateJWT,
+  requireRole(["ADMIN"]),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { reviewId } = req.params as { reviewId: string };
+    const { reply } = req.body;
+
+    if (!reply) return res.status(400).json({ error: "Reply comment is required" });
+
+    try {
+      const updatedReview = await prisma.review.update({
+        where: { id: reviewId },
+        data: {
+          adminReply: reply,
+        },
+      });
+      res.json(updatedReview);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// 12. Admin Moderate Review (Admin Only)
+router.post(
+  "/reviews/:reviewId/moderate",
+  authenticateJWT,
+  requireRole(["ADMIN"]),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { reviewId } = req.params as { reviewId: string };
+    const { status } = req.body; // APPROVED or REJECTED
+
+    if (!status || (status !== "APPROVED" && status !== "REJECTED")) {
+      return res.status(400).json({ error: "Status must be APPROVED or REJECTED" });
+    }
+
+    try {
+      const updatedReview = await prisma.review.update({
+        where: { id: reviewId },
+        data: {
+          isApproved: status === "APPROVED",
+          moderationStatus: status,
+        },
+      });
+      res.json(updatedReview);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

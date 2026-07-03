@@ -1,3 +1,6 @@
+import { logger } from "../utils/logger.js";
+import env from "../config/env.js";
+
 const apiKey = process.env.ZEPTOMAIL_API_KEY || "";
 const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || "bounce@pepisandbox.com";
 const fromName = process.env.ZEPTOMAIL_FROM_NAME || "Drapeva";
@@ -6,9 +9,12 @@ const isMocked = !apiKey || apiKey.includes("mock");
 export class EmailService {
   static async sendEmail(to: string, subject: string, html: string) {
     if (isMocked) {
-      console.log(`[ZeptoMail Mock] Email sent to: ${to}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Body snippet: ${html.substring(0, 200)}...`);
+      if (env.NODE_ENV === "production" || env.NODE_ENV === "staging") {
+        throw new Error(
+          "ZeptoMail API Key is missing or invalid in production/staging environment.",
+        );
+      }
+      logger.info(`[Email Mock] Sending to: ${to}`, { subject });
       return { id: "zeptomail_mock_id_" + Math.random().toString(36).substring(4) };
     }
 
@@ -41,16 +47,7 @@ export class EmailService {
     };
 
     try {
-      // 6. Log request URL, headers (excluding secrets), and body
-      const headersForLog = {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: "[REDACTED]",
-      };
-
-      console.log(`[ZeptoMail Request] URL: ${endpoint}`);
-      console.log(`[ZeptoMail Request] Headers: ${JSON.stringify(headersForLog)}`);
-      console.log(`[ZeptoMail Request] Body: ${JSON.stringify(payload)}`);
+      logger.debug(`[Email] Sending to: ${to}`, { subject, endpoint });
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -62,35 +59,25 @@ export class EmailService {
         body: JSON.stringify(payload),
       });
 
-      const responseHeaders: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
-      });
-
       const text = await response.text();
 
-      // 5. Replace all JSON parsing with robust handling supporting both JSON and plain text
-      let responseData: any;
+      let responseData: unknown;
       try {
         responseData = JSON.parse(text);
-      } catch (e) {
+      } catch {
         responseData = { text };
       }
 
-      // 6. Log response status, headers, and body
-      console.log(`[ZeptoMail Response] Status: ${response.status} ${response.statusText}`);
-      console.log(`[ZeptoMail Response] Headers: ${JSON.stringify(responseHeaders)}`);
-      console.log(`[ZeptoMail Response] Body: ${JSON.stringify(responseData)}`);
-
       if (!response.ok) {
-        console.error(`[ZeptoMail Service] API error: Status ${response.status}`, responseData);
+        logger.error(`[Email] API error: ${response.status}`, { to, subject });
         return null;
       }
 
       return responseData;
-    } catch (err) {
-      console.error("ZeptoMail Email error:", err);
-      // Don't crash the server if email fails
+    } catch (err: unknown) {
+      logger.error("[Email] Send failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
       return null;
     }
   }
@@ -105,7 +92,7 @@ export class EmailService {
         <p>Welcome to the DRAPEVA STORE. Your account has been successfully registered.</p>
         <p>Discover our heirloom Banarasi weaves, bridal Kanjivarams, and styling consultations designed to celebrate your most precious moments.</p>
         <div style="text-align: center; margin: 40px 0;">
-          <a href="http://localhost:3000/shop" style="background-color: #1a1612; color: #faf9f6; padding: 15px 30px; text-decoration: none; font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;">Explore the Collection</a>
+          <a href="${env.FRONTEND_URL}/shop" style="background-color: #1a1612; color: #faf9f6; padding: 15px 30px; text-decoration: none; font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase;">Explore the Collection</a>
         </div>
         <p style="font-size: 0.85rem; color: #8c7853; line-height: 1.6;">Warmest regards,<br/>The Drapeva Concierge Team</p>
       </div>
@@ -147,7 +134,7 @@ export class EmailService {
         <p><strong>Date:</strong> ${dateStr}</p>
         <p><strong>Time Slot:</strong> ${timeSlot}</p>
         <p><strong>Type:</strong> ${type === "VIDEO" ? "Video Consultation" : "In-Person Consultation"}</p>
-        <p>Our concierge will reach out to you shortly via WhatsApp to share details or link invites.</p>
+        <p>Our concierge will reach out to you shortly via email to share details or link invites.</p>
         <p style="font-size: 0.85rem; color: #8c7853; line-height: 1.6;">With compliments,<br/>The Drapeva Concierge Team</p>
       </div>
     `;

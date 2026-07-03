@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import { logger } from "../utils/logger.js";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 let client: ReturnType<typeof createClient> | null = null;
@@ -7,9 +8,9 @@ let hasWarnedError = false;
 
 if (!redisUrl.includes("mock")) {
   client = createClient({ url: redisUrl });
-  client.on("error", (err: any) => {
+  client.on("error", (err: Error) => {
     if (!hasWarnedError) {
-      console.warn("Redis client warning, caching disabled:", err.message);
+      logger.warn("Redis client warning, caching disabled", { message: err.message });
       hasWarnedError = true;
     }
     isConnected = false;
@@ -17,16 +18,15 @@ if (!redisUrl.includes("mock")) {
   client
     .connect()
     .then(() => {
-      console.log("Connected to Redis cache");
+      logger.info("Connected to Redis cache");
       isConnected = true;
       hasWarnedError = false;
     })
-    .catch((err: any) => {
+    .catch((err: Error) => {
       if (!hasWarnedError) {
-        console.warn(
-          "Failed to connect to Redis cache. Fallback to direct DB queries:",
-          err.message,
-        );
+        logger.warn("Failed to connect to Redis — falling back to direct DB queries", {
+          message: err.message,
+        });
         hasWarnedError = true;
       }
       isConnected = false;
@@ -38,13 +38,13 @@ export class CacheService {
     if (!isConnected || !client) return null;
     try {
       const data = await client.get(key);
-      return data ? JSON.parse(data) : null;
+      return data ? (JSON.parse(data) as T) : null;
     } catch {
       return null;
     }
   }
 
-  static async set(key: string, value: any, ttlSeconds: number = 3600): Promise<void> {
+  static async set(key: string, value: unknown, ttlSeconds: number = 3600): Promise<void> {
     if (!isConnected || !client) return;
     try {
       await client.setEx(key, ttlSeconds, JSON.stringify(value));
@@ -73,4 +73,8 @@ export class CacheService {
       // ignore
     }
   }
+}
+
+export function getRedisStatus() {
+  return { isConnected, initialized: !!client };
 }
