@@ -371,7 +371,7 @@ jobs:
       github.event.inputs.skip_deploy != 'true'
     environment:
       name: production
-      url: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+      url: https://example.com
     permissions:
       contents: read
       deployments: write
