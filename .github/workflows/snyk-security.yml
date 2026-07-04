@@ -61,7 +61,9 @@ jobs:
             echo "::notice::SNYK_TOKEN not set; skipping Snyk test."
             exit 0
           fi
-          snyk test --all-projects --severity-threshold=high || true
+          if ! snyk test --all-projects --severity-threshold=high; then
+            echo "Snyk test failed, ignoring."
+          fi
 
       - name: Upload SARIF to GitHub Code Scanning
         if: always()

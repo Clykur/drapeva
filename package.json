@@ -13,11 +13,11 @@
     "build:backend": "npm run build -w backend",
     "build": "npm run build -w frontend && npm run build -w backend",
     "start": "npm run start -w frontend",
-    "lint": "npm run lint -w frontend",
-    "lint:fix": "npm run lint:fix -w frontend",
-    "typecheck": "npm run typecheck -w frontend",
+    "lint": "npm run lint -w frontend && npm run lint -w backend",
+    "lint:fix": "npm run lint:fix -w frontend && npm run lint:fix -w backend",
+    "typecheck": "npm run typecheck -w frontend && npm run typecheck -w backend",
     "format": "prettier --write \"frontend/**/*.{ts,tsx,js,jsx,json,css}\" \"backend/**/*.{ts,js,json}\" \"*.{ts,js,json}\"",
-    "format:check": "npm run format:check -w frontend",
+    "format:check": "npm run format:check -w frontend && npm run format:check -w backend",
     "clean": "npm run clean -w frontend && rm -rf node_modules",
     "seed:supabase": "node frontend/scripts/seed-supabase.cjs",
     "db:seed": "npm run db:seed -w backend",
@@ -37,7 +37,7 @@
     "precommit:strict": "npm run lint && npm run typecheck",
     "prepush:strict": "npm run guard:all",
     "guard:all": "node scripts/infrastructure/run-enterprise-guard.js",
-    "prepare": "husky"
+    "prepare": "node -e \"if (!process.env.CI && !process.env.VERCEL && !process.env.RENDER && !process.env.NETLIFY && !process.env.GITHUB_ACTIONS) { const { spawnSync } = require('child_process'); spawnSync('npx', ['husky'], { stdio: 'inherit', shell: true }); }\""
   },
   "dependencies": {
     "express": "^5.2.1",

@@ -200,7 +200,17 @@ jobs:
           restore-keys: nextjs-${{ runner.os }}-
 
       - name: Build Next.js (production)
-        run: npm run build:frontend
+        run: |
+          # Set up build env vars with default fallbacks using shell parameters (no server secrets)
+          export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}"
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-anon-key}"
+          export NEXT_PUBLIC_RAZORPAY_KEY_ID="${NEXT_PUBLIC_RAZORPAY_KEY_ID:-placeholder-razorpay-key}"
+          export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://example.com}"
+          export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-https://example.com}"
+          export NEXT_PUBLIC_GA4_ID="${NEXT_PUBLIC_GA4_ID:-}"
+          export NEXT_PUBLIC_GTM_ID="${NEXT_PUBLIC_GTM_ID:-}"
+          export BACKEND_API_URL="${BACKEND_API_URL:-http://localhost:5001}"
+          npm run build:frontend
         env:
           NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -210,14 +220,7 @@ jobs:
           NEXT_PUBLIC_MAINTENANCE_MODE:  'false'
           NEXT_PUBLIC_GA4_ID:            ${{ secrets.NEXT_PUBLIC_GA4_ID }}
           NEXT_PUBLIC_GTM_ID:            ${{ secrets.NEXT_PUBLIC_GTM_ID }}
-          BACKEND_API_URL:               ${{ secrets.BACKEND_API_URL || 'http://localhost:5001' }}
-          SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          RAZORPAY_KEY_SECRET:           ${{ secrets.RAZORPAY_KEY_SECRET }}
-          RAZORPAY_WEBHOOK_SECRET:       ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
-          ORDER_WEBHOOK_SECRET:          ${{ secrets.ORDER_WEBHOOK_SECRET }}
-          RESEND_API_KEY:                ${{ secrets.RESEND_API_KEY }}
-          WHATSAPP_API_TOKEN:            ${{ secrets.WHATSAPP_API_TOKEN }}
-          WHATSAPP_PHONE_NUMBER_ID:      ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          BACKEND_API_URL:               ${{ secrets.BACKEND_API_URL }}
 
   build-backend:
     name: build-backend
@@ -304,19 +307,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Lowercase image name
+        run: |
+          echo "IMAGE_NAME_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set build-time backend URL
+        env:
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
+        run: |
+          echo "BACKEND_API_URL=${BACKEND_API_URL:-http://backend:5001}" >> "$GITHUB_ENV"
+
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          DOCKER_PASSWORD="${GHCR_TOKEN:-${{ secrets.GITHUB_TOKEN }}}"
+          echo "$DOCKER_PASSWORD" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
       - name: Extract Docker metadata (tags + labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}
           tags: |
             type=sha,prefix=sha-,format=short
             type=ref,event=branch
@@ -340,10 +353,10 @@ jobs:
             NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
             NEXT_PUBLIC_GA4_ID=${{ secrets.NEXT_PUBLIC_GA4_ID }}
             NEXT_PUBLIC_GTM_ID=${{ secrets.NEXT_PUBLIC_GTM_ID }}
-            BACKEND_API_URL=${{ secrets.BACKEND_API_URL || 'http://backend:5001' }}
+            BACKEND_API_URL=${{ env.BACKEND_API_URL }}
           # Layer caching via GHCR
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to:   type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache
+          cache-to:   type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache,mode=max
 
       - name: Docker build summary
         run: |
@@ -351,7 +364,7 @@ jobs:
             echo "## 🐳 Docker Build"
             echo "| Field | Value |"
             echo "|-------|-------|"
-            echo "| Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` |"
+            echo "| Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}\` |"
             echo "| Tags | \`${{ steps.meta.outputs.tags }}\` |"
             echo "| Pushed | \`${{ github.event_name != 'pull_request' }}\` |"
             echo "| Commit | \`${{ github.sha }}\` |"
@@ -382,7 +395,11 @@ jobs:
       - name: Check Vercel secrets
         id: check-vercel
         run: |
-          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+          skip_vercel=false
+          if [ -z "$VERCEL_TOKEN" ]; then skip_vercel=true; fi
+          if [ -z "$VERCEL_ORG_ID" ]; then skip_vercel=true; fi
+          if [ -z "$VERCEL_PROJECT_ID" ]; then skip_vercel=true; fi
+          if [ "$skip_vercel" = "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Vercel secrets not configured — skipping frontend deploy."
           else
