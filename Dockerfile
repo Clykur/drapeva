@@ -99,9 +99,12 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # ---- Backend runtime ----
 WORKDIR /app/backend
-COPY --from=builder-backend /app/backend/dist           ./dist
-COPY --from=builder-backend /app/backend/prisma         ./prisma
-COPY --from=builder-backend /app/backend/node_modules   ./node_modules
+COPY --from=builder-backend /app/backend/dist ./dist
+COPY --from=builder-backend /app/backend/prisma ./prisma
+
+# Dependencies come from the deps stage (npm workspaces)
+COPY --from=deps /app/node_modules /app/node_modules
+
 COPY backend/package.json ./
 
 # ---- Frontend runtime ----

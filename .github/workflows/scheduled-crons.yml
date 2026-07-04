@@ -16,11 +16,11 @@ name: Scheduled Crons
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       task:
-        description: 'Specific task to run'
+        description: "Specific task to run"
         type: choice
         options:
           - all
@@ -83,7 +83,7 @@ jobs:
           TASK: ${{ github.event.inputs.task }}
         run: |
           set -e
-          
+
           # Default TASK value
           TASK="${TASK:-all}"
 

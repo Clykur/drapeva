@@ -16,13 +16,13 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, 'feature/**', 'fix/**', 'chore/**', 'release/**']
+    branches: [main, develop, "feature/**", "fix/**", "chore/**", "release/**"]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
     inputs:
       skip_deploy:
-        description: 'Skip deployment'
+        description: "Skip deployment"
         type: boolean
         default: false
 
@@ -35,8 +35,8 @@ concurrency:
 
 env:
   CI: true
-  NODE_VERSION: '22'
-  NODE_OPTIONS: '--max-old-space-size=4096'
+  NODE_VERSION: "22"
+  NODE_OPTIONS: "--max-old-space-size=4096"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   HUSKY: 0
   REGISTRY: ghcr.io
@@ -87,9 +87,9 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STAGE 2 — Static checks (parallel)
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STAGE 2 — Static checks (parallel)
+  # ─────────────────────────────────────────────────────────────────────────────
   lint:
     name: lint
     runs-on: ubuntu-latest
@@ -270,9 +270,9 @@ jobs:
           fi
           echo "CodeQL passed" >> "$GITHUB_STEP_SUMMARY"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STAGE 3 — Parallel builds + image optimisation
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STAGE 3 — Parallel builds + image optimisation
+  # ─────────────────────────────────────────────────────────────────────────────
   build-frontend:
     name: build-frontend
     runs-on: ubuntu-latest
@@ -316,15 +316,15 @@ jobs:
           export BACKEND_API_URL="${BACKEND_API_URL:-http://localhost:5001}"
           npm run build:frontend
         env:
-          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_RAZORPAY_KEY_ID:   ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
-          NEXT_PUBLIC_APP_URL:           ${{ secrets.NEXT_PUBLIC_APP_URL }}
-          NEXT_PUBLIC_SITE_URL:          ${{ secrets.NEXT_PUBLIC_SITE_URL }}
-          NEXT_PUBLIC_MAINTENANCE_MODE:  'false'
-          NEXT_PUBLIC_GA4_ID:            ${{ secrets.NEXT_PUBLIC_GA4_ID }}
-          NEXT_PUBLIC_GTM_ID:            ${{ secrets.NEXT_PUBLIC_GTM_ID }}
-          BACKEND_API_URL:               ${{ secrets.BACKEND_API_URL }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_MAINTENANCE_MODE: "false"
+          NEXT_PUBLIC_GA4_ID: ${{ secrets.NEXT_PUBLIC_GA4_ID }}
+          NEXT_PUBLIC_GTM_ID: ${{ secrets.NEXT_PUBLIC_GTM_ID }}
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
 
       - name: Build summary
         run: echo "## ✅ Frontend build passed" >> "$GITHUB_STEP_SUMMARY"
@@ -488,9 +488,9 @@ jobs:
           fail-on-severity: high
           deny-licenses: GPL-3.0, AGPL-3.0
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STAGE 4 — Docker build & push (main + release branches only)
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STAGE 4 — Docker build & push (main + release branches only)
+  # ─────────────────────────────────────────────────────────────────────────────
   docker-build:
     name: docker-build
     runs-on: ubuntu-latest
@@ -562,7 +562,7 @@ jobs:
             BACKEND_API_URL=${{ env.BACKEND_API_URL }}
           # Layer caching via GHCR
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache
-          cache-to:   type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache,mode=max
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache,mode=max
 
       - name: Docker build summary
         run: |
@@ -576,9 +576,9 @@ jobs:
             echo "| Commit | \`${{ github.sha }}\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STAGE 5 — Deploy (main branch pushes only)
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STAGE 5 — Deploy (main branch pushes only)
+  # ─────────────────────────────────────────────────────────────────────────────
   deploy-frontend:
     name: deploy-frontend (Vercel)
     runs-on: ubuntu-latest
@@ -613,20 +613,20 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
         env:
-          VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy to Vercel
         if: steps.check-vercel.outputs.skip != 'true'
         uses: amondnet/vercel-action@v42.2.0
         with:
-          vercel-version:    '51.8.0'
-          vercel-token:      ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id:     ${{ secrets.VERCEL_ORG_ID }}
+          vercel-version: "51.8.0"
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args:       '--prod'
-          github-comment:    true
+          vercel-args: "--prod"
+          github-comment: true
 
       - name: Frontend deploy summary
         run: |
@@ -685,9 +685,9 @@ jobs:
             echo "| Time   | $(date -u +"%Y-%m-%d %H:%M:%S UTC") |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Gate jobs — fan-in for branch protection rules
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Gate jobs — fan-in for branch protection rules
+  # ─────────────────────────────────────────────────────────────────────────────
   pr-merge-gate:
     name: PR merge gate
     if: github.event_name == 'pull_request'
