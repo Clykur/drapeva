@@ -34,6 +34,16 @@ dist-ssr
 *.sw?
 
 .env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
 .env.*
 !.env.example
+!backend/.env.example
+!frontend/.env.example
 supabase/.temp/

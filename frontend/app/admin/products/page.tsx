@@ -410,35 +410,6 @@ function AdminProductsContent() {
             </div>
           </Section>
 
-          {/* ── Product Flags ── */}
-          <Section title="Product Flags">
-            <div className="flex flex-wrap gap-8">
-              {(
-                [
-                  ["is_featured", "Featured on Homepage"],
-                  ["is_bestseller", "Bestseller"],
-                  ["is_new_arrival", "New Arrival"],
-                ] as [keyof ProductFormData, string][]
-              ).map(([k, label]) => (
-                <label key={k} className="flex items-center gap-3 cursor-pointer select-none">
-                  <div
-                    onClick={() => setField(k, !form[k] as any)}
-                    className={`relative h-5 w-9 rounded-full transition-colors ${
-                      form[k] ? "bg-gold" : "bg-border"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                        form[k] ? "translate-x-4" : "translate-x-0.5"
-                      }`}
-                    />
-                  </div>
-                  <span className="text-sm">{label}</span>
-                </label>
-              ))}
-            </div>
-          </Section>
-
           {/* ── SEO & Meta ── */}
           <Section title="SEO & Meta">
             <div className="grid gap-5">
@@ -557,21 +528,6 @@ function AdminProductsContent() {
                                 {p.product_code || p.id.slice(0, 8)}
                               </p>
                               <div className="flex gap-1 mt-1">
-                                {p.is_featured && (
-                                  <span className="text-[9px] bg-gold/10 text-gold px-1 py-0.5 rounded">
-                                    Featured
-                                  </span>
-                                )}
-                                {p.is_bestseller && (
-                                  <span className="text-[9px] bg-emerald-50 text-emerald-600 px-1 py-0.5 rounded">
-                                    Bestseller
-                                  </span>
-                                )}
-                                {p.is_new_arrival && (
-                                  <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded">
-                                    New
-                                  </span>
-                                )}
                                 {p.sale_price && (
                                   <span className="text-[9px] bg-red-50 text-red-600 px-1 py-0.5 rounded">
                                     Sale

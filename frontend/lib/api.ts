@@ -115,8 +115,31 @@ export const productsApi = {
       .limit(limit);
     if (categoryId) query = query.eq("category_id", categoryId);
     const { data, error } = await query;
-    if (error) return [];
-    return (data || []).map(normalize);
+    const related: any[] = data || [];
+
+    // Fallback if we have fewer related products than limit
+    if (related.length < limit) {
+      const fallbackQuery = supabase
+        .from("products")
+        .select(
+          `*, images:product_images(*), category:categories(*), collection:collections(*), reviews:reviews(rating, is_approved)`,
+        )
+        .eq("status", "published")
+        .neq("id", productId)
+        .limit(limit + related.length);
+      const { data: fallbackData } = await fallbackQuery;
+      if (fallbackData) {
+        const existingIds = new Set(related.map((p) => p.id));
+        for (const item of fallbackData as any[]) {
+          if (!existingIds.has(item.id) && related.length < limit) {
+            related.push(item);
+          }
+        }
+      }
+    }
+
+    if (error && related.length === 0) return [];
+    return related.map(normalize);
   },
 
   // ADMIN
