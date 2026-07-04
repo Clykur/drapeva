@@ -1,8 +1,8 @@
 #!/bin/bash
 # Apply all fixes via Supabase REST API using curl
 
-SUPABASE_URL="https://xwxryhgfnkxrthaeybsr.supabase.co"
-SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3eHJ5aGdmbmt4cnRoYWV5YnNyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTc0NTEwNywiZXhwIjoyMDk3MzIxMTA3fQ.cIjRYEZPcXisfDHREJfmyTNypZf-HTh_bjxHtP7CQrM"
+SUPABASE_URL="your-url"
+SERVICE_KEY="your-service-key"
 
 echo "======================================================"
 echo "  APPLYING TRIGGER FIX VIA SUPABASE SQL ENDPOINT"

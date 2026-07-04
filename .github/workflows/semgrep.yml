@@ -15,12 +15,12 @@ env:
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: ['main']
+    branches: ["main"]
   schedule:
-    - cron: '25 13 * * 4'
+    - cron: "25 13 * * 4"
 
 permissions:
   contents: read
@@ -40,7 +40,7 @@ jobs:
       - uses: returntocorp/semgrep-action@fcd5ab7459e8d91cb1777481980d1b18b4fc6735
         with:
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          generateSarif: '1'
+          generateSarif: "1"
 
       # Upload SARIF file generated in previous step
       - name: Upload SARIF file

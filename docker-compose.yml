@@ -8,7 +8,6 @@
 # ============================================================
 
 services:
-
   # ── Redis cache ─────────────────────────────────────────────
   redis:
     image: redis:7-alpine
@@ -28,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: deps          # use deps stage so we get node_modules fast
+      target: deps # use deps stage so we get node_modules fast
     working_dir: /app/backend
     command: >
       sh -c "npx prisma generate --schema=prisma/schema.prisma && npx tsx watch src/index.ts"
@@ -36,7 +35,7 @@ services:
       - "5001:5001"
     volumes:
       - ./backend:/app/backend
-      - /app/backend/node_modules   # keep container node_modules
+      - /app/backend/node_modules # keep container node_modules
     env_file:
       - ./backend/.env
     environment:
@@ -60,14 +59,14 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app/frontend
-      - /app/frontend/node_modules  # keep container node_modules
-      - /app/frontend/.next         # keep .next build cache
+      - /app/frontend/node_modules # keep container node_modules
+      - /app/frontend/.next # keep .next build cache
     env_file:
       - ./frontend/.env.local
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
-      - WATCHPACK_POLLING=true      # enable polling for Docker on macOS/Windows
+      - WATCHPACK_POLLING=true # enable polling for Docker on macOS/Windows
       - BACKEND_API_URL=http://backend:5001
     depends_on:
       - backend
