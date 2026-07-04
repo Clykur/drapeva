@@ -173,10 +173,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      - name: Install Gitleaks CLI
+        run: |
+          VERSION=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | jq -r '.tag_name' | sed 's/v//')
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+
+      - name: Run Gitleaks Scan
+        run: |
+          gitleaks detect --source=. --verbose --redact --report-format=sarif --report-path=gitleaks-report.sarif --exit-code=1
+
+      - name: Upload Gitleaks Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.sarif
 
   codeql:
     name: codeql
@@ -230,9 +243,11 @@ jobs:
           FAILED=false
           if [ -d "$SARIF_DIR" ]; then
             for f in "$SARIF_DIR"/*.sarif; do
-              [ -f "$f" ] || continue
-              ERROR_COUNT=$(jq -r '[.runs[].results[]? | select(.level == "error")] | length' "$f" 2>/dev/null || echo 0)
-              WARNING_COUNT=$(jq -r '[.runs[].results[]? | select(.level == "warning")] | length' "$f" 2>/dev/null || echo 0)
+              if [ ! -f "$f" ]; then continue; fi
+              ERROR_COUNT=$(jq -r '[.runs[].results[]? | select(.level == "error")] | length' "$f" 2>/dev/null)
+              if [ -z "$ERROR_COUNT" ]; then ERROR_COUNT=0; fi
+              WARNING_COUNT=$(jq -r '[.runs[].results[]? | select(.level == "warning")] | length' "$f" 2>/dev/null)
+              if [ -z "$WARNING_COUNT" ]; then WARNING_COUNT=0; fi
               if [ "${ERROR_COUNT:-0}" -gt 0 ]; then
                 echo "::error::CodeQL found ${ERROR_COUNT} critical security issues"
                 FAILED=true
@@ -289,24 +304,27 @@ jobs:
           restore-keys: nextjs-${{ runner.os }}-
 
       - name: Build Next.js (production)
-        run: npm run build:frontend
+        run: |
+          # Set up build env vars with default fallbacks using shell parameters (no server secrets)
+          export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}"
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-anon-key}"
+          export NEXT_PUBLIC_RAZORPAY_KEY_ID="${NEXT_PUBLIC_RAZORPAY_KEY_ID:-placeholder-razorpay-key}"
+          export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://example.com}"
+          export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-https://example.com}"
+          export NEXT_PUBLIC_GA4_ID="${NEXT_PUBLIC_GA4_ID:-}"
+          export NEXT_PUBLIC_GTM_ID="${NEXT_PUBLIC_GTM_ID:-}"
+          export BACKEND_API_URL="${BACKEND_API_URL:-http://localhost:5001}"
+          npm run build:frontend
         env:
-          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
-          NEXT_PUBLIC_RAZORPAY_KEY_ID:   ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'placeholder-razorpay-key' }}
-          NEXT_PUBLIC_APP_URL:           ${{ secrets.NEXT_PUBLIC_APP_URL || 'https://example.com' }}
-          NEXT_PUBLIC_SITE_URL:          ${{ secrets.NEXT_PUBLIC_SITE_URL || 'https://example.com' }}
+          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID:   ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
+          NEXT_PUBLIC_APP_URL:           ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_SITE_URL:          ${{ secrets.NEXT_PUBLIC_SITE_URL }}
           NEXT_PUBLIC_MAINTENANCE_MODE:  'false'
-          NEXT_PUBLIC_GA4_ID:            ${{ secrets.NEXT_PUBLIC_GA4_ID || '' }}
-          NEXT_PUBLIC_GTM_ID:            ${{ secrets.NEXT_PUBLIC_GTM_ID || '' }}
-          BACKEND_API_URL:               ${{ secrets.BACKEND_API_URL || 'http://localhost:5001' }}
-          SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key' }}
-          RAZORPAY_KEY_SECRET:           ${{ secrets.RAZORPAY_KEY_SECRET || 'placeholder-razorpay-secret' }}
-          RAZORPAY_WEBHOOK_SECRET:       ${{ secrets.RAZORPAY_WEBHOOK_SECRET || 'placeholder-webhook-secret' }}
-          ORDER_WEBHOOK_SECRET:          ${{ secrets.ORDER_WEBHOOK_SECRET || 'placeholder-order-secret' }}
-          RESEND_API_KEY:                ${{ secrets.RESEND_API_KEY || 'placeholder-resend-key' }}
-          WHATSAPP_API_TOKEN:            ${{ secrets.WHATSAPP_API_TOKEN || 'placeholder-wa-token' }}
-          WHATSAPP_PHONE_NUMBER_ID:      ${{ secrets.WHATSAPP_PHONE_NUMBER_ID || 'placeholder-wa-phone' }}
+          NEXT_PUBLIC_GA4_ID:            ${{ secrets.NEXT_PUBLIC_GA4_ID }}
+          NEXT_PUBLIC_GTM_ID:            ${{ secrets.NEXT_PUBLIC_GTM_ID }}
+          BACKEND_API_URL:               ${{ secrets.BACKEND_API_URL }}
 
       - name: Build summary
         run: echo "## ✅ Frontend build passed" >> "$GITHUB_STEP_SUMMARY"
@@ -411,19 +429,19 @@ jobs:
     needs: [setup]
     steps:
       - name: Checkout (release branches)
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') }}
+        if: ${{ !(github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/')) }}
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - uses: actions/setup-node@v4
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') }}
+        if: ${{ !(github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/')) }}
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - uses: actions/cache@v4
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') }}
+        if: ${{ !(github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/')) }}
         with:
           path: |
             node_modules
@@ -431,21 +449,21 @@ jobs:
             backend/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
 
-      - if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && hashFiles('node_modules/.package-lock.json') == '' }}
+      - if: ${{ !(github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/')) && hashFiles('node_modules/.package-lock.json') == '' }}
         run: npm ci
 
       - name: Generate CycloneDX SBOM
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') }}
+        if: ${{ !(github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/')) }}
         run: npx @cyclonedx/cyclonedx-npm --output-file sbom.json
 
       - name: Validate SBOM
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') }}
+        if: ${{ !(github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/')) }}
         run: |
           test -s sbom.json
           jq -e '.bomFormat == "CycloneDX"' sbom.json
 
       - uses: actions/upload-artifact@v4
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') }}
+        if: ${{ !(github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/')) }}
         with:
           name: sbom-${{ github.run_id }}
           path: sbom.json
@@ -496,19 +514,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Lowercase image name
+        run: |
+          echo "IMAGE_NAME_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set build-time backend URL
+        env:
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
+        run: |
+          echo "BACKEND_API_URL=${BACKEND_API_URL:-http://backend:5001}" >> "$GITHUB_ENV"
+
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          DOCKER_PASSWORD="${GHCR_TOKEN:-${{ secrets.GITHUB_TOKEN }}}"
+          echo "$DOCKER_PASSWORD" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
       - name: Extract Docker metadata (tags + labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}
           tags: |
             type=sha,prefix=sha-,format=short
             type=ref,event=branch
@@ -531,10 +559,10 @@ jobs:
             NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
             NEXT_PUBLIC_GA4_ID=${{ secrets.NEXT_PUBLIC_GA4_ID }}
             NEXT_PUBLIC_GTM_ID=${{ secrets.NEXT_PUBLIC_GTM_ID }}
-            BACKEND_API_URL=${{ secrets.BACKEND_API_URL || 'http://backend:5001' }}
+            BACKEND_API_URL=${{ env.BACKEND_API_URL }}
           # Layer caching via GHCR
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to:   type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache
+          cache-to:   type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache,mode=max
 
       - name: Docker build summary
         run: |
@@ -542,7 +570,7 @@ jobs:
             echo "## 🐳 Docker Build"
             echo "| Field | Value |"
             echo "|-------|-------|"
-            echo "| Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` |"
+            echo "| Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}\` |"
             echo "| Tags | \`${{ steps.meta.outputs.tags }}\` |"
             echo "| Pushed | \`${{ github.event_name != 'pull_request' }}\` |"
             echo "| Commit | \`${{ github.sha }}\` |"
@@ -574,7 +602,11 @@ jobs:
       - name: Check Vercel secrets
         id: check-vercel
         run: |
-          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+          skip_vercel=false
+          if [ -z "$VERCEL_TOKEN" ]; then skip_vercel=true; fi
+          if [ -z "$VERCEL_ORG_ID" ]; then skip_vercel=true; fi
+          if [ -z "$VERCEL_PROJECT_ID" ]; then skip_vercel=true; fi
+          if [ "$skip_vercel" = "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Vercel secrets not configured — skipping frontend deploy."
           else
