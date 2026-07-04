@@ -15,7 +15,7 @@ name: CodeQL
 on:
   schedule:
     # Run weekly deep security scan
-    - cron: '0 3 * * 0'
+    - cron: "0 3 * * 0"
   workflow_dispatch:
 
 permissions:
@@ -92,11 +92,15 @@ jobs:
 
           if [ -d "$SARIF_DIR" ]; then
             for f in "$SARIF_DIR"/*.sarif; do
-              [ -f "$f" ] || continue
+              if [ ! -f "$f" ]; then
+                continue
+              fi
               
               # Count error and warning level findings
-              ERROR_COUNT=$(jq -r '[.runs[].results[]? | select(.level == "error")] | length' "$f" 2>/dev/null || echo 0)
-              WARNING_COUNT=$(jq -r '[.runs[].results[]? | select(.level == "warning")] | length' "$f" 2>/dev/null || echo 0)
+              ERROR_COUNT=$(jq -r '[.runs[].results[]? | select(.level == "error")] | length' "$f" 2>/dev/null)
+              if [ -z "$ERROR_COUNT" ]; then ERROR_COUNT=0; fi
+              WARNING_COUNT=$(jq -r '[.runs[].results[]? | select(.level == "warning")] | length' "$f" 2>/dev/null)
+              if [ -z "$WARNING_COUNT" ]; then WARNING_COUNT=0; fi
               
               if [ "${ERROR_COUNT:-0}" -gt 0 ]; then
                 echo "::error::CodeQL found ${ERROR_COUNT} critical security issues"

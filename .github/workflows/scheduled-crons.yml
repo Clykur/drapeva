@@ -16,11 +16,11 @@ name: Scheduled Crons
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       task:
-        description: 'Specific task to run'
+        description: "Specific task to run"
         type: choice
         options:
           - all
@@ -44,9 +44,7 @@ jobs:
     name: Run Scheduled Tasks
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: |
-      github.event_name == 'schedule' || 
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    if: ${{ !(github.event_name != 'schedule' && !(github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
 
     steps:
       - name: Validate secrets
@@ -82,9 +80,12 @@ jobs:
         env:
           APP_URL: ${{ steps.validate.outputs.url }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          TASK: ${{ github.event.inputs.task || 'all' }}
+          TASK: ${{ github.event.inputs.task }}
         run: |
           set -e
+
+          # Default TASK value
+          TASK="${TASK:-all}"
 
           AUTH="Authorization: Bearer $CRON_SECRET"
           H=$(date -u +%H)
@@ -97,15 +98,20 @@ jobs:
             local name=$4
             
             echo "Calling: $name"
-            HTTP_CODE=$(curl -sf -X "$method" "$APP_URL$endpoint" -H "$AUTH" -m "$timeout" -w "%{http_code}" -o /tmp/response.txt 2>/dev/null) || HTTP_CODE="000"
-            
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
-              echo "✅ $name: Success ($HTTP_CODE)"
-              return 0
-            else
-              echo "⚠️ $name: HTTP $HTTP_CODE"
-              return 0  # Don't fail the workflow for individual endpoint failures
+            if ! HTTP_CODE=$(curl -sf -X "$method" "$APP_URL$endpoint" -H "$AUTH" -m "$timeout" -w "%{http_code}" -o /tmp/response.txt 2>/dev/null); then
+              HTTP_CODE="000"
             fi
+            
+            case "$HTTP_CODE" in
+              200|204)
+                echo "✅ $name: Success ($HTTP_CODE)"
+                return 0
+                ;;
+              *)
+                echo "⚠️ $name: HTTP $HTTP_CODE"
+                return 0  # Don't fail the workflow for individual endpoint failures
+                ;;
+            esac
           }
 
           # Initialize summary
@@ -117,15 +123,19 @@ jobs:
           echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
 
           # Every 15 min tasks
-          if [ "$TASK" = "all" ] || [ "$TASK" = "trim-metrics" ]; then
-            call_endpoint "POST" "/api/cron/trim-metric-timings" 60 "Trim Metrics"
-            echo "| Trim Metrics | ✅ |" >> $GITHUB_STEP_SUMMARY
-          fi
+          case "$TASK" in
+            all|trim-metrics)
+              call_endpoint "POST" "/api/cron/trim-metric-timings" 60 "Trim Metrics"
+              echo "| Trim Metrics | ✅ |" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
 
-          if [ "$TASK" = "all" ] || [ "$TASK" = "expire-payments" ]; then
-            call_endpoint "POST" "/api/cron/expire-payments" 60 "Expire Payments"
-            echo "| Expire Payments | ✅ |" >> $GITHUB_STEP_SUMMARY
-          fi
+          case "$TASK" in
+            all|expire-payments)
+              call_endpoint "POST" "/api/cron/expire-payments" 60 "Expire Payments"
+              echo "| Expire Payments | ✅ |" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
 
           # Hourly tasks (at specific hours)
           if [ "$TASK" = "all" ]; then

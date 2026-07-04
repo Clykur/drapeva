@@ -35,13 +35,13 @@ name: CI/CD
 
 on:
   push:
-    branches: [main, develop, 'feature/**', 'fix/**', 'chore/**', 'release/**']
+    branches: [main, develop, "feature/**", "fix/**", "chore/**", "release/**"]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
     inputs:
       skip_deploy:
-        description: 'Skip deployment steps'
+        description: "Skip deployment steps"
         type: boolean
         default: false
 
@@ -54,8 +54,8 @@ concurrency:
 
 env:
   CI: true
-  NODE_VERSION: '22'
-  NODE_OPTIONS: '--max-old-space-size=4096'
+  NODE_VERSION: "22"
+  NODE_OPTIONS: "--max-old-space-size=4096"
   HUSKY: 0
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -103,9 +103,9 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STAGE 2 — Static checks (parallel)
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STAGE 2 — Static checks (parallel)
+  # ─────────────────────────────────────────────────────────────────────────────
   lint:
     name: lint
     runs-on: ubuntu-latest
@@ -115,7 +115,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
       - uses: actions/setup-node@v4
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - uses: actions/cache@v4
         with:
           path: |
@@ -136,7 +136,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
       - uses: actions/setup-node@v4
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - uses: actions/cache@v4
         with:
           path: |
@@ -157,7 +157,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
       - uses: actions/setup-node@v4
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - uses: actions/cache@v4
         with:
           path: |
@@ -169,9 +169,9 @@ jobs:
         run: npm ci
       - run: npm run format:check
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STAGE 3 — Parallel builds + image optimisation
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STAGE 3 — Parallel builds + image optimisation
+  # ─────────────────────────────────────────────────────────────────────────────
   build-frontend:
     name: build-frontend
     runs-on: ubuntu-latest
@@ -181,7 +181,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
       - uses: actions/setup-node@v4
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - uses: actions/cache@v4
         with:
           path: |
@@ -200,24 +200,27 @@ jobs:
           restore-keys: nextjs-${{ runner.os }}-
 
       - name: Build Next.js (production)
-        run: npm run build:frontend
+        run: |
+          # Set up build env vars with default fallbacks using shell parameters (no server secrets)
+          export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}"
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-anon-key}"
+          export NEXT_PUBLIC_RAZORPAY_KEY_ID="${NEXT_PUBLIC_RAZORPAY_KEY_ID:-placeholder-razorpay-key}"
+          export NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://example.com}"
+          export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-https://example.com}"
+          export NEXT_PUBLIC_GA4_ID="${NEXT_PUBLIC_GA4_ID:-}"
+          export NEXT_PUBLIC_GTM_ID="${NEXT_PUBLIC_GTM_ID:-}"
+          export BACKEND_API_URL="${BACKEND_API_URL:-http://localhost:5001}"
+          npm run build:frontend
         env:
-          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_RAZORPAY_KEY_ID:   ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
-          NEXT_PUBLIC_APP_URL:           ${{ secrets.NEXT_PUBLIC_APP_URL }}
-          NEXT_PUBLIC_SITE_URL:          ${{ secrets.NEXT_PUBLIC_SITE_URL }}
-          NEXT_PUBLIC_MAINTENANCE_MODE:  'false'
-          NEXT_PUBLIC_GA4_ID:            ${{ secrets.NEXT_PUBLIC_GA4_ID }}
-          NEXT_PUBLIC_GTM_ID:            ${{ secrets.NEXT_PUBLIC_GTM_ID }}
-          BACKEND_API_URL:               ${{ secrets.BACKEND_API_URL || 'http://localhost:5001' }}
-          SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          RAZORPAY_KEY_SECRET:           ${{ secrets.RAZORPAY_KEY_SECRET }}
-          RAZORPAY_WEBHOOK_SECRET:       ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
-          ORDER_WEBHOOK_SECRET:          ${{ secrets.ORDER_WEBHOOK_SECRET }}
-          RESEND_API_KEY:                ${{ secrets.RESEND_API_KEY }}
-          WHATSAPP_API_TOKEN:            ${{ secrets.WHATSAPP_API_TOKEN }}
-          WHATSAPP_PHONE_NUMBER_ID:      ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_MAINTENANCE_MODE: "false"
+          NEXT_PUBLIC_GA4_ID: ${{ secrets.NEXT_PUBLIC_GA4_ID }}
+          NEXT_PUBLIC_GTM_ID: ${{ secrets.NEXT_PUBLIC_GTM_ID }}
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
 
   build-backend:
     name: build-backend
@@ -228,7 +231,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
       - uses: actions/setup-node@v4
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - uses: actions/cache@v4
         with:
           path: |
@@ -252,7 +255,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
       - uses: actions/setup-node@v4
-        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
       - uses: actions/cache@v4
         with:
           path: |
@@ -279,9 +282,9 @@ jobs:
           path: frontend/public/
           retention-days: 3
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STAGE 4 — Docker build & push (main + release branches only)
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STAGE 4 — Docker build & push (main + release branches only)
+  # ─────────────────────────────────────────────────────────────────────────────
   docker-build:
     name: docker-build
     runs-on: ubuntu-latest
@@ -304,19 +307,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Lowercase image name
+        run: |
+          echo "IMAGE_NAME_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set build-time backend URL
+        env:
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
+        run: |
+          echo "BACKEND_API_URL=${BACKEND_API_URL:-http://backend:5001}" >> "$GITHUB_ENV"
+
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          DOCKER_PASSWORD="${GHCR_TOKEN:-${{ secrets.GITHUB_TOKEN }}}"
+          echo "$DOCKER_PASSWORD" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
       - name: Extract Docker metadata (tags + labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}
           tags: |
             type=sha,prefix=sha-,format=short
             type=ref,event=branch
@@ -340,10 +353,10 @@ jobs:
             NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
             NEXT_PUBLIC_GA4_ID=${{ secrets.NEXT_PUBLIC_GA4_ID }}
             NEXT_PUBLIC_GTM_ID=${{ secrets.NEXT_PUBLIC_GTM_ID }}
-            BACKEND_API_URL=${{ secrets.BACKEND_API_URL || 'http://backend:5001' }}
+            BACKEND_API_URL=${{ env.BACKEND_API_URL }}
           # Layer caching via GHCR
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to:   type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:buildcache,mode=max
 
       - name: Docker build summary
         run: |
@@ -351,15 +364,15 @@ jobs:
             echo "## 🐳 Docker Build"
             echo "| Field | Value |"
             echo "|-------|-------|"
-            echo "| Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` |"
+            echo "| Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}\` |"
             echo "| Tags | \`${{ steps.meta.outputs.tags }}\` |"
             echo "| Pushed | \`${{ github.event_name != 'pull_request' }}\` |"
             echo "| Commit | \`${{ github.sha }}\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STAGE 5 — Deploy (main branch pushes only)
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STAGE 5 — Deploy (main branch pushes only)
+  # ─────────────────────────────────────────────────────────────────────────────
   deploy-frontend:
     name: deploy-frontend (Vercel)
     runs-on: ubuntu-latest
@@ -382,27 +395,31 @@ jobs:
       - name: Check Vercel secrets
         id: check-vercel
         run: |
-          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+          skip_vercel=false
+          if [ -z "$VERCEL_TOKEN" ]; then skip_vercel=true; fi
+          if [ -z "$VERCEL_ORG_ID" ]; then skip_vercel=true; fi
+          if [ -z "$VERCEL_PROJECT_ID" ]; then skip_vercel=true; fi
+          if [ "$skip_vercel" = "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Vercel secrets not configured — skipping frontend deploy."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
         env:
-          VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy to Vercel
         if: steps.check-vercel.outputs.skip != 'true'
         uses: amondnet/vercel-action@v42.2.0
         with:
-          vercel-version:    '51.8.0'
-          vercel-token:      ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id:     ${{ secrets.VERCEL_ORG_ID }}
+          vercel-version: "51.8.0"
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args:       '--prod'
-          github-comment:    true
+          vercel-args: "--prod"
+          github-comment: true
 
       - name: Frontend deploy summary
         run: |
@@ -461,9 +478,9 @@ jobs:
             echo "| Time   | $(date -u +"%Y-%m-%d %H:%M:%S UTC") |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Gate jobs — fan-in for branch protection rules
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Gate jobs — fan-in for branch protection rules
+  # ─────────────────────────────────────────────────────────────────────────────
   pr-merge-gate:
     name: PR merge gate
     if: github.event_name == 'pull_request'
