@@ -32,10 +32,7 @@ const OrderInputSchema = z.object({
 });
 
 // Helper to validate and calculate coupon discount
-async function calculateCouponDiscount(
-  coupon: any,
-  cartTotal: number,
-) {
+async function calculateCouponDiscount(coupon: any, cartTotal: number) {
   if (!coupon.is_active) throw new Error("Coupon is inactive");
   if (coupon.expires_at && new Date(coupon.expires_at) < new Date())
     throw new Error("Coupon has expired");
@@ -45,7 +42,7 @@ async function calculateCouponDiscount(
   if (cartTotal < coupon.min_order_value) {
     throw new Error(`Minimum order value of ₹${coupon.min_order_value} required`);
   }
-  
+
   let discount: number;
   if (coupon.discount_type === "percentage") {
     discount = (cartTotal * coupon.discount_value) / 100;
@@ -131,12 +128,14 @@ router.post(
         }
 
         if (variant.stock < item.quantity) {
-          return res.status(400).json({ error: `Insufficient stock for ${product.name} (${variant.size})` });
+          return res
+            .status(400)
+            .json({ error: `Insufficient stock for ${product.name} (${variant.size})` });
         }
 
         const price = product.price;
         subtotal += price * item.quantity;
-        
+
         const images = product.product_images || [];
         const mainImage = images.find((im: any) => im.is_featured)?.url || images[0]?.url || "";
 
@@ -148,7 +147,7 @@ router.post(
           product_image: mainImage,
           size: variant.size,
           sku: variant.sku,
-          total: price * item.quantity
+          total: price * item.quantity,
         });
       }
 
@@ -202,7 +201,7 @@ router.post(
         p_discount: discount,
         p_shipping_cost: shippingCost,
         p_tax: tax,
-        p_total: total
+        p_total: total,
       });
 
       if (rpcErr || !order) {
@@ -212,7 +211,12 @@ router.post(
       // If COD, send confirmation email immediately
       if (data.paymentMethod === "COD") {
         try {
-          await EmailService.sendOrderConfirmation(order.customer_email || order.email, order.customer_name || order.name, order.id, order.total);
+          await EmailService.sendOrderConfirmation(
+            order.customer_email || order.email,
+            order.customer_name || order.name,
+            order.id,
+            order.total,
+          );
         } catch (emailErr) {
           console.error("Failed to send COD order confirmation email", emailErr);
         }
@@ -229,48 +233,56 @@ router.post(
 );
 
 // 3. Get User's Orders
-router.get("/my-orders", authenticateJWT, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const { data: orders, error } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("user_id", req.user!.id)
-      .order("created_at", { ascending: false });
+router.get(
+  "/my-orders",
+  authenticateJWT,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { data: orders, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("user_id", req.user!.id)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+
+      res.json(orders);
+    } catch (err) {
+      next(err);
     }
-
-    res.json(orders);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // 4. Get Single Order Detail
-router.get("/:id", authenticateJWT, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const { id } = req.params;
-  try {
-    const { data: order, error } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
+router.get(
+  "/:id",
+  authenticateJWT,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    try {
+      const { data: order, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
 
-    if (error || !order) {
-      return res.status(404).json({ error: "Order not found" });
+      if (error || !order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      // Auth check: User can only view their own order unless Admin
+      if (order.user_id !== req.user!.id && req.user!.role !== "ADMIN") {
+        return res.status(403).json({ error: "Unauthorized access to order details" });
+      }
+
+      res.json(order);
+    } catch (err) {
+      next(err);
     }
-
-    // Auth check: User can only view their own order unless Admin
-    if (order.user_id !== req.user!.id && req.user!.role !== "ADMIN") {
-      return res.status(403).json({ error: "Unauthorized access to order details" });
-    }
-
-    res.json(order);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // 5. Update Order Status (Admin Only)
 router.put(
@@ -309,31 +321,39 @@ router.put(
 );
 
 // 6. Get Order Status History (Timeline)
-router.get("/:id/timeline", authenticateJWT, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const { id } = req.params;
-  try {
-    const { data: order } = await supabase.from("orders").select("user_id").eq("id", id).maybeSingle();
-    if (!order) return res.status(404).json({ error: "Order not found" });
+router.get(
+  "/:id/timeline",
+  authenticateJWT,
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    try {
+      const { data: order } = await supabase
+        .from("orders")
+        .select("user_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (!order) return res.status(404).json({ error: "Order not found" });
 
-    if (order.user_id !== req.user!.id && req.user!.role !== "ADMIN") {
-      return res.status(403).json({ error: "Access denied" });
+      if (order.user_id !== req.user!.id && req.user!.role !== "ADMIN") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { data: history, error } = await supabase
+        .from("order_status_history")
+        .select("*")
+        .eq("order_id", id)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+
+      res.json(history);
+    } catch (err) {
+      next(err);
     }
-
-    const { data: history, error } = await supabase
-      .from("order_status_history")
-      .select("*")
-      .eq("order_id", id)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json(history);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // 7. Add Comment to Timeline (Admin Only)
 router.post(
@@ -392,7 +412,9 @@ router.post(
       }
 
       if (order.status === "shipped" || order.status === "delivered") {
-        return res.status(400).json({ error: "Cannot cancel items of shipped or delivered orders" });
+        return res
+          .status(400)
+          .json({ error: "Cannot cancel items of shipped or delivered orders" });
       }
 
       const items = Array.isArray(order.items) ? order.items : [];
@@ -625,10 +647,7 @@ router.put(
         }
 
         // Update order status if completely returned
-        await supabase
-          .from("orders")
-          .update({ status: "returned" })
-          .eq("id", retReq.order_id);
+        await supabase.from("orders").update({ status: "returned" }).eq("id", retReq.order_id);
       }
 
       await supabase.from("order_status_history").insert({

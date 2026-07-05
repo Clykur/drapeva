@@ -163,7 +163,8 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction) =>
       credentials.phone = formatted;
     }
 
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword(credentials);
+    const { data: signInData, error: signInError } =
+      await supabase.auth.signInWithPassword(credentials);
     const authUser = signInData?.user;
 
     if (signInError || !authUser) {
@@ -203,7 +204,10 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction) =>
       if (!twoFactorCode) {
         return res.json({ require2FA: true, userId: profile.id });
       }
-      if (!profile.two_factor_secret || !TotpService.verifyToken(profile.two_factor_secret, twoFactorCode)) {
+      if (
+        !profile.two_factor_secret ||
+        !TotpService.verifyToken(profile.two_factor_secret, twoFactorCode)
+      ) {
         return res.status(400).json({ error: "Invalid two-factor authentication code" });
       }
     }
@@ -349,10 +353,7 @@ router.post("/reset-password", async (req: Request, res: Response, _next: NextFu
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await supabase
-      .from("profiles")
-      .update({ password_hash: passwordHash })
-      .eq("id", user.id);
+    await supabase.from("profiles").update({ password_hash: passwordHash }).eq("id", user.id);
 
     res.json({ message: "Password reset successful" });
   } catch (_err) {

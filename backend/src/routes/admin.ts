@@ -24,7 +24,7 @@ router.get(
         .neq("status", "cancelled");
 
       if (todayErr) throw todayErr;
-      
+
       const todaySales = (todayOrders || []).reduce(
         (sum: number, o: { total: number }) => sum + Number(o.total),
         0,
@@ -82,7 +82,11 @@ router.get(
         for (const item of items) {
           const prodId = item.productId || item.product_id;
           if (prodId) {
-            const existing = salesMap.get(prodId) || { name: item.productName || item.product_name || "Heritage Saree", quantity: 0, sales: 0 };
+            const existing = salesMap.get(prodId) || {
+              name: item.productName || item.product_name || "Heritage Saree",
+              quantity: 0,
+              sales: 0,
+            };
             existing.quantity += item.quantity || 0;
             existing.sales += (item.price || 0) * (item.quantity || 0);
             salesMap.set(prodId, existing);
@@ -111,7 +115,7 @@ router.get(
         deliveredOrders: statusMap["DELIVERED"] || 0,
         cancelledOrders: statusMap["CANCELLED"] || 0,
         lowStockCount: lowStockProducts?.length || 0,
-        lowStockProducts: (lowStockProducts || []).map(v => ({
+        lowStockProducts: (lowStockProducts || []).map((v) => ({
           id: v.id,
           name: v.product?.name || "Product",
           size: v.size,
@@ -120,7 +124,8 @@ router.get(
         bestSellers,
         totalCustomers: totalCustomers || 0,
         conversionRate: 3.4, // Industry average mock
-        averageOrderValue: (monthlyOrders || []).length > 0 ? monthlyRevenue / (monthlyOrders || []).length : 0,
+        averageOrderValue:
+          (monthlyOrders || []).length > 0 ? monthlyRevenue / (monthlyOrders || []).length : 0,
         salesByState: [
           { state: "Maharashtra", sales: monthlyRevenue * 0.4 },
           { state: "Delhi", sales: monthlyRevenue * 0.25 },

@@ -239,14 +239,17 @@ router.post(
           .maybeSingle();
 
         if (variant) {
-          await supabase.from("cart_items").upsert({
-            user_id: req.user!.id,
-            product_id: variant.productId,
-            quantity: item.quantity,
-            size: variant.size,
-          }, {
-            onConflict: "user_id,product_id,size"
-          });
+          await supabase.from("cart_items").upsert(
+            {
+              user_id: req.user!.id,
+              product_id: variant.productId,
+              quantity: item.quantity,
+              size: variant.size,
+            },
+            {
+              onConflict: "user_id,product_id,size",
+            },
+          );
         }
       }
 
@@ -286,12 +289,15 @@ router.post(
       if (!cartItem) return res.status(404).json({ error: "Item not found in cart" });
 
       // Add to wishlist
-      await supabase.from("wishlist").upsert({
-        user_id: req.user!.id,
-        product_id: variant.productId,
-      }, {
-        onConflict: "user_id,product_id"
-      });
+      await supabase.from("wishlist").upsert(
+        {
+          user_id: req.user!.id,
+          product_id: variant.productId,
+        },
+        {
+          onConflict: "user_id,product_id",
+        },
+      );
 
       // Remove from cart
       await supabase.from("cart_items").delete().eq("id", cartItem.id);

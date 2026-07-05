@@ -177,9 +177,7 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
       else return res.json([]);
     }
 
-    let q = supabase
-      .from("products")
-      .select("*, product_images(*), reviews(*)");
+    let q = supabase.from("products").select("*, product_images(*), reviews(*)");
 
     if (categoryId) q = q.eq("category_id", categoryId);
     if (collectionId) q = q.eq("collection_id", collectionId);
@@ -188,7 +186,9 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
     if (maxPrice) q = q.lte("price", parseFloat(maxPrice as string));
 
     if (query) {
-      q = q.or(`name.ilike.%${query}%,description.ilike.%${query}%,fabric.ilike.%${query}%,product_code.ilike.%${query}%`);
+      q = q.or(
+        `name.ilike.%${query}%,description.ilike.%${query}%,fabric.ilike.%${query}%,product_code.ilike.%${query}%`,
+      );
     }
 
     if (sort === "price-asc") q = q.order("price", { ascending: true });
@@ -217,10 +217,14 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     if (cached) return res.json(cached);
 
     // Try finding by UUID or slug
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      id as string,
+    );
     let q = supabase
       .from("products")
-      .select("*, product_images(*), category:categories(*), collection:collections(*), reviews(*)");
+      .select(
+        "*, product_images(*), category:categories(*), collection:collections(*), reviews(*)",
+      );
 
     if (isUuid) {
       q = q.or(`id.eq.${id},slug.eq.${id}`);
@@ -294,7 +298,7 @@ router.post(
           alt_text: img.altText || p.name,
           is_featured: img.isFeatured || i === 0,
           sort_order: img.sortOrder ?? i,
-        }))
+        })),
       );
 
       if (imgErr) {
@@ -364,7 +368,7 @@ router.put(
           alt_text: img.altText || p.name,
           is_featured: img.isFeatured || i === 0,
           sort_order: img.sortOrder ?? i,
-        }))
+        })),
       );
 
       if (imgErr) {
@@ -464,7 +468,7 @@ router.post(
             review_id: review.id,
             url: item.url,
             type: item.type || "IMAGE",
-          }))
+          })),
         );
         if (medErr) {
           return res.status(500).json({ error: medErr.message });

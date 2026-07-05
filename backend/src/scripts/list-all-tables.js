@@ -9,7 +9,7 @@ async function main() {
       ORDER BY table_name;
     `);
     console.log("All tables in DB:");
-    console.log(res.map(r => r.table_name));
+    console.log(res.map((r) => r.table_name));
   } catch (err) {
     console.error("Failed to query tables:", err);
   } finally {

@@ -17,14 +17,12 @@ export async function idempotency(req: Request, res: Response, next: NextFunctio
   try {
     // Attempt to insert a placeholder atomically
     let existing;
-    const { error: insErr } = await supabase
-      .from("IdempotencyRequest")
-      .insert({
-        id: crypto.randomUUID(),
-        key,
-        responseStatus: 102, // Processing
-        responseBody: JSON.stringify({ status: "processing" }),
-      });
+    const { error: insErr } = await supabase.from("IdempotencyRequest").insert({
+      id: crypto.randomUUID(),
+      key,
+      responseStatus: 102, // Processing
+      responseBody: JSON.stringify({ status: "processing" }),
+    });
 
     if (insErr) {
       // Unique constraint failed or other error. It means the key is already processing or done.
@@ -33,7 +31,7 @@ export async function idempotency(req: Request, res: Response, next: NextFunctio
         .select("*")
         .eq("key", key)
         .maybeSingle();
-      
+
       existing = data;
 
       if (existing) {

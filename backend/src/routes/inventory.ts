@@ -105,21 +105,25 @@ router.get(
         type: m.type,
         notes: m.notes,
         createdAt: m.created_at,
-        variant: m.variant ? {
-          id: m.variant.id,
-          productId: m.variant.productId,
-          size: m.variant.size,
-          sku: m.variant.sku,
-          stock: m.variant.stock,
-          product: m.variant.product ? {
-            id: m.variant.product.id,
-            name: m.variant.product.name,
-            slug: m.variant.product.slug,
-            description: m.variant.product.description,
-            price: m.variant.product.price,
-            stockQuantity: m.variant.product.stock_quantity,
-          } : null
-        } : null,
+        variant: m.variant
+          ? {
+              id: m.variant.id,
+              productId: m.variant.productId,
+              size: m.variant.size,
+              sku: m.variant.sku,
+              stock: m.variant.stock,
+              product: m.variant.product
+                ? {
+                    id: m.variant.product.id,
+                    name: m.variant.product.name,
+                    slug: m.variant.product.slug,
+                    description: m.variant.product.description,
+                    price: m.variant.product.price,
+                    stockQuantity: m.variant.product.stock_quantity,
+                  }
+                : null,
+            }
+          : null,
       }));
 
       res.json(mappedMovements);
@@ -198,13 +202,15 @@ router.get(
         size: v.size,
         sku: v.sku,
         stock: v.stock,
-        product: v.product ? {
-          id: v.product.id,
-          name: v.product.name,
-          slug: v.product.slug,
-          price: v.product.price,
-          stockQuantity: v.product.stock_quantity,
-        } : null
+        product: v.product
+          ? {
+              id: v.product.id,
+              name: v.product.name,
+              slug: v.product.slug,
+              price: v.product.price,
+              stockQuantity: v.product.stock_quantity,
+            }
+          : null,
       }));
 
       res.json(mapped);
@@ -217,7 +223,9 @@ router.get(
 // Helper to release expired reservations automatically
 export async function releaseExpiredReservations() {
   try {
-    const { data: releasedCount, error } = await supabase.rpc("release_expired_reservations_atomic");
+    const { data: releasedCount, error } = await supabase.rpc(
+      "release_expired_reservations_atomic",
+    );
     if (error) throw error;
 
     if (releasedCount && releasedCount > 0) {

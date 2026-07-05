@@ -86,12 +86,15 @@ router.post("/newsletter", async (req: Request, res: Response, next: NextFunctio
   try {
     const { data: subscriber, error } = await supabase
       .from("newsletter_subscribers")
-      .upsert({
-        email,
-        is_active: true,
-      }, {
-        onConflict: "email"
-      })
+      .upsert(
+        {
+          email,
+          is_active: true,
+        },
+        {
+          onConflict: "email",
+        },
+      )
       .select()
       .single();
 
