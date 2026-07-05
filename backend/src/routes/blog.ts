@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import prisma from "../config/prisma.js";
 import { CacheService } from "../services/redis.js";
 import { authenticateJWT, requireRole } from "../middlewares/auth.js";
+import { supabase } from "../services/supabase.js";
 
 const router = Router();
 
@@ -16,6 +16,21 @@ const PostSchema = z.object({
   isPublished: z.boolean().optional(),
 });
 
+function mapPost(post: any) {
+  if (!post) return post;
+  return {
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    content: post.content,
+    image: post.image,
+    category: post.category,
+    author: post.author,
+    isPublished: post.is_published,
+    createdAt: post.created_at,
+  };
+}
+
 // 1. Get Blog Posts
 router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -23,12 +38,18 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const cached = await CacheService.get<any[]>(cacheKey);
     if (cached) return res.json(cached);
 
-    const posts = await prisma.blogPost.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    const { data: posts, error } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    await CacheService.set(cacheKey, posts, 1800);
-    res.json(posts);
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    const mappedPosts = posts.map(mapPost);
+    await CacheService.set(cacheKey, mappedPosts, 1800);
+    res.json(mappedPosts);
   } catch (err) {
     next(err);
   }
@@ -43,14 +64,20 @@ router.get("/:slug", async (req: Request, res: Response, next: NextFunction) => 
     const cached = await CacheService.get<any>(cacheKey);
     if (cached) return res.json(cached);
 
-    const post = await prisma.blogPost.findUnique({
-      where: { slug: slug as string },
-    });
+    const { data: post, error } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("slug", slug as string)
+      .maybeSingle();
 
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
     if (!post) return res.status(404).json({ error: "Blog post not found" });
 
-    await CacheService.set(cacheKey, post, 1800);
-    res.json(post);
+    const mappedPost = mapPost(post);
+    await CacheService.set(cacheKey, mappedPost, 1800);
+    res.json(mappedPost);
   } catch (err) {
     next(err);
   }
@@ -69,22 +96,28 @@ router.post(
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)+/g, "");
 
-      const post = await prisma.blogPost.create({
-        data: {
+      const { data: post, error } = await supabase
+        .from("blog_posts")
+        .insert({
           title: data.title,
           slug,
           content: data.content,
           image: data.image,
           category: data.category,
           author: data.author,
-          isPublished: data.isPublished || false,
-        },
-      });
+          is_published: data.isPublished || false,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
 
       // Invalidate caches
       await CacheService.del("maaya:blog:all");
 
-      res.status(201).json(post);
+      res.status(201).json(mapPost(post));
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ error: err.errors });
@@ -108,24 +141,30 @@ router.put(
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)+/g, "");
 
-      const post = await prisma.blogPost.update({
-        where: { id: id as string },
-        data: {
+      const { data: post, error } = await supabase
+        .from("blog_posts")
+        .update({
           title: data.title,
           slug,
           content: data.content,
           image: data.image,
           category: data.category,
           author: data.author,
-          isPublished: data.isPublished,
-        },
-      });
+          is_published: data.isPublished,
+        })
+        .eq("id", id as string)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
 
       // Invalidate caches
       await CacheService.del("maaya:blog:all");
       await CacheService.del(`maaya:blog:${slug}`);
 
-      res.json(post);
+      res.json(mapPost(post));
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ error: err.errors });
@@ -143,7 +182,16 @@ router.delete(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     try {
-      const post = await prisma.blogPost.delete({ where: { id: id as string } });
+      const { data: post, error } = await supabase
+        .from("blog_posts")
+        .delete()
+        .eq("id", id as string)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
 
       // Invalidate caches
       await CacheService.del("maaya:blog:all");

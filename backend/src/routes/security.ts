@@ -1,7 +1,7 @@
 import { Router, Response, NextFunction } from "express";
-import prisma from "../config/prisma.js";
 import { authenticateJWT, AuthenticatedRequest } from "../middlewares/auth.js";
 import { TotpService } from "../utils/totp.js";
+import { supabase } from "../services/supabase.js";
 
 const router = Router();
 
@@ -11,17 +11,26 @@ router.post(
   authenticateJWT,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-      if (!user) return res.status(404).json({ error: "User not found" });
+      const { data: user, error: userErr } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", req.user!.id)
+        .maybeSingle();
+
+      if (!user || userErr) return res.status(404).json({ error: "User not found" });
 
       // Generate secret and store temporarily
       const secret = TotpService.generateSecret();
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { twoFactorSecret: secret },
-      });
+      const { error: updateErr } = await supabase
+        .from("profiles")
+        .update({ two_factor_secret: secret })
+        .eq("id", user.id);
 
-      const qrUrl = TotpService.getOtpauthUrl(user.email, secret);
+      if (updateErr) {
+        return res.status(500).json({ error: updateErr.message });
+      }
+
+      const qrUrl = TotpService.getOtpauthUrl(user.email || "", secret);
       res.json({ secret, qrUrl });
     } catch (err) {
       next(err);
@@ -38,20 +47,29 @@ router.post(
     if (!code) return res.status(400).json({ error: "Verification code is required" });
 
     try {
-      const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-      if (!user || !user.twoFactorSecret) {
+      const { data: user, error: userErr } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", req.user!.id)
+        .maybeSingle();
+
+      if (!user || userErr || !user.two_factor_secret) {
         return res.status(400).json({ error: "2FA setup has not been initiated" });
       }
 
-      const isValid = TotpService.verifyToken(user.twoFactorSecret, code);
+      const isValid = TotpService.verifyToken(user.two_factor_secret, code);
       if (!isValid) {
         return res.status(400).json({ error: "Invalid verification code" });
       }
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { twoFactorEnabled: true },
-      });
+      const { error: updateErr } = await supabase
+        .from("profiles")
+        .update({ two_factor_enabled: true })
+        .eq("id", user.id);
+
+      if (updateErr) {
+        return res.status(500).json({ error: updateErr.message });
+      }
 
       res.json({ success: true, message: "Two-factor authentication enabled successfully" });
     } catch (err) {
@@ -66,10 +84,17 @@ router.get(
   authenticateJWT,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const sessions = await prisma.userSession.findMany({
-        where: { userId: req.user!.id, isActive: true },
-        orderBy: { createdAt: "desc" },
-      });
+      const { data: sessions, error } = await supabase
+        .from("UserSession")
+        .select("*")
+        .eq("userId", req.user!.id)
+        .eq("isActive", true)
+        .order("createdAt", { ascending: false });
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+
       res.json(sessions);
     } catch (err) {
       next(err);
@@ -84,16 +109,16 @@ router.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const { currentSessionId } = req.body;
     try {
-      await prisma.userSession.updateMany({
-        where: {
-          userId: req.user!.id,
-          id: { not: currentSessionId || "" },
-          isActive: true,
-        },
-        data: {
-          isActive: false,
-        },
-      });
+      const { error } = await supabase
+        .from("UserSession")
+        .update({ isActive: false })
+        .eq("userId", req.user!.id)
+        .neq("id", currentSessionId || "")
+        .eq("isActive", true);
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
 
       res.json({ success: true, message: "Logged out from all other sessions" });
     } catch (err) {

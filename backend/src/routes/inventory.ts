@@ -1,12 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Router, Request, Response, NextFunction } from "express";
-import { Prisma } from "@prisma/client";
-import prisma from "../config/prisma.js";
 import { authenticateJWT, requireRole } from "../middlewares/auth.js";
 import { logger } from "../utils/logger.js";
+import { supabase } from "../services/supabase.js";
 
 const router = Router();
 
-// 1. Reserve Stock during checkout (internally called or via API)
+// 1. Reserve Stock during checkout
 router.post(
   "/reserve",
   authenticateJWT,
@@ -17,57 +17,30 @@ router.post(
     }
 
     const minutes = expiresMinutes || 15;
-    const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
+    const expiresAt = new Date(Date.now() + minutes * 60 * 1000).toISOString();
 
     try {
-      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        const variants = await tx.$queryRaw<
-          { id: string; productId: string; stock: number; size: string }[]
-        >`
-          SELECT * FROM "ProductVariant" WHERE id = ${variantId} FOR UPDATE
-        `;
-        const variant = variants?.[0];
-
-        if (!variant) throw new Error("Product variant not found");
-
-        const product = await tx.product.findUnique({
-          where: { id: variant.productId },
-        });
-        if (!product) throw new Error("Product not found");
-
-        if (variant.stock < quantity) {
-          throw new Error(`Insufficient stock for ${product.name} (${variant.size})`);
-        }
-
-        // Deduct stock
-        await tx.productVariant.update({
-          where: { id: variantId },
-          data: { stock: { decrement: quantity } },
-        });
-
-        // Create reservation
-        const reservation = await tx.inventoryReservation.create({
-          data: {
-            variantId,
-            quantity,
-            expiresAt,
-          },
-        });
-
-        // Create movement log
-        await tx.inventoryMovement.create({
-          data: {
-            variantId,
-            quantity: -quantity,
-            type: "RESERVATION",
-            notes: `Reserved for checkout. Expires at ${expiresAt.toISOString()}`,
-          },
-        });
-
-        return reservation;
+      const { data: reservation, error } = await supabase.rpc("reserve_inventory_atomic", {
+        p_variant_id: variantId,
+        p_quantity: Number(quantity),
+        p_expires_at: expiresAt,
       });
 
-      res.status(201).json(result);
+      if (error || !reservation) {
+        return res.status(400).json({ error: error?.message || "Stock reservation failed" });
+      }
+
+      // Map back to Prisma camelCase naming style
+      const mappedReservation = {
+        id: reservation.id,
+        variantId: reservation.variant_id,
+        quantity: reservation.quantity,
+        expiresAt: reservation.expires_at,
+        isReleased: reservation.is_released,
+        createdAt: reservation.created_at,
+      };
+
+      res.status(201).json(mappedReservation);
     } catch (err: unknown) {
       res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
     }
@@ -83,37 +56,25 @@ router.post(
     if (!reservationId) return res.status(400).json({ error: "reservationId is required" });
 
     try {
-      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        const resv = await tx.inventoryReservation.findUnique({ where: { id: reservationId } });
-        if (!resv) throw new Error("Reservation not found");
-        if (resv.isReleased) throw new Error("Reservation already released");
-
-        // Increment stock back
-        await tx.productVariant.update({
-          where: { id: resv.variantId },
-          data: { stock: { increment: resv.quantity } },
-        });
-
-        // Mark released
-        const updatedResv = await tx.inventoryReservation.update({
-          where: { id: reservationId },
-          data: { isReleased: true },
-        });
-
-        // Movement log
-        await tx.inventoryMovement.create({
-          data: {
-            variantId: resv.variantId,
-            quantity: resv.quantity,
-            type: "RELEASE",
-            notes: `Released reservation ${reservationId}`,
-          },
-        });
-
-        return updatedResv;
+      const { data: reservation, error } = await supabase.rpc("release_reservation_atomic", {
+        p_reservation_id: reservationId,
       });
 
-      res.json(result);
+      if (error || !reservation) {
+        return res.status(400).json({ error: error?.message || "Releasing reservation failed" });
+      }
+
+      // Map back to Prisma camelCase naming style
+      const mappedReservation = {
+        id: reservation.id,
+        variantId: reservation.variant_id,
+        quantity: reservation.quantity,
+        expiresAt: reservation.expires_at,
+        isReleased: reservation.is_released,
+        createdAt: reservation.created_at,
+      };
+
+      res.json(mappedReservation);
     } catch (err: unknown) {
       res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
     }
@@ -127,11 +88,41 @@ router.get(
   requireRole(["ADMIN"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const movements = await prisma.inventoryMovement.findMany({
-        include: { variant: { include: { product: true } } },
-        orderBy: { createdAt: "desc" },
-      });
-      res.json(movements);
+      const { data: movements, error } = await supabase
+        .from("inventory_movements")
+        .select("*, variant:ProductVariant(*, product:products(*))")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+
+      // Map to camelCase style
+      const mappedMovements = movements.map((m: any) => ({
+        id: m.id,
+        variantId: m.variant_id,
+        quantity: m.quantity,
+        type: m.type,
+        notes: m.notes,
+        createdAt: m.created_at,
+        variant: m.variant ? {
+          id: m.variant.id,
+          productId: m.variant.productId,
+          size: m.variant.size,
+          sku: m.variant.sku,
+          stock: m.variant.stock,
+          product: m.variant.product ? {
+            id: m.variant.product.id,
+            name: m.variant.product.name,
+            slug: m.variant.product.slug,
+            description: m.variant.product.description,
+            price: m.variant.product.price,
+            stockQuantity: m.variant.product.stock_quantity,
+          } : null
+        } : null,
+      }));
+
+      res.json(mappedMovements);
     } catch (err) {
       next(err);
     }
@@ -144,35 +135,40 @@ router.post(
   authenticateJWT,
   requireRole(["ADMIN"]),
   async (req: Request, res: Response, _next: NextFunction) => {
-    const { updates } = req.body; // Array of { variantId, quantity }
+    const { updates } = req.body;
     if (!updates || !Array.isArray(updates)) {
       return res.status(400).json({ error: "updates array is required" });
     }
 
     try {
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        for (const update of updates) {
-          const { variantId, quantity } = update;
-          const variant = await tx.productVariant.findUnique({ where: { id: variantId } });
-          if (!variant) throw new Error(`Variant ${variantId} not found`);
+      for (const update of updates) {
+        const { variantId, quantity } = update;
+        const { data: variant } = await supabase
+          .from("ProductVariant")
+          .select("stock")
+          .eq("id", variantId)
+          .maybeSingle();
 
-          const difference = quantity - variant.stock;
+        if (!variant) throw new Error(`Variant ${variantId} not found`);
 
-          await tx.productVariant.update({
-            where: { id: variantId },
-            data: { stock: quantity },
-          });
+        const difference = quantity - (variant.stock || 0);
 
-          await tx.inventoryMovement.create({
-            data: {
-              variantId,
-              quantity: difference,
-              type: "BULK_UPDATE",
-              notes: `Bulk stock update from ${variant.stock} to ${quantity}`,
-            },
-          });
-        }
-      });
+        const { error: updErr } = await supabase
+          .from("ProductVariant")
+          .update({ stock: quantity })
+          .eq("id", variantId);
+
+        if (updErr) throw updErr;
+
+        const { error: movErr } = await supabase.from("inventory_movements").insert({
+          variant_id: variantId,
+          quantity: difference,
+          type: "BULK_UPDATE",
+          notes: `Bulk stock update from ${variant.stock} to ${quantity}`,
+        });
+
+        if (movErr) throw movErr;
+      }
 
       res.json({ success: true, message: "Bulk inventory updated successfully" });
     } catch (err: unknown) {
@@ -188,10 +184,30 @@ router.get(
   requireRole(["ADMIN"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const inventory = await prisma.productVariant.findMany({
-        include: { product: true },
-      });
-      res.json(inventory);
+      const { data: inventory, error } = await supabase
+        .from("ProductVariant")
+        .select("*, product:products(*)");
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+
+      const mapped = inventory.map((v: any) => ({
+        id: v.id,
+        productId: v.productId,
+        size: v.size,
+        sku: v.sku,
+        stock: v.stock,
+        product: v.product ? {
+          id: v.product.id,
+          name: v.product.name,
+          slug: v.product.slug,
+          price: v.product.price,
+          stockQuantity: v.product.stock_quantity,
+        } : null
+      }));
+
+      res.json(mapped);
     } catch (err) {
       next(err);
     }
@@ -200,49 +216,12 @@ router.get(
 
 // Helper to release expired reservations automatically
 export async function releaseExpiredReservations() {
-  const now = new Date();
   try {
-    const expiredReservations = await prisma.inventoryReservation.findMany({
-      where: {
-        expiresAt: { lt: now },
-        isReleased: false,
-      },
-    });
+    const { data: releasedCount, error } = await supabase.rpc("release_expired_reservations_atomic");
+    if (error) throw error;
 
-    if (expiredReservations.length === 0) return;
-
-    logger.info(`[Inventory] Releasing ${expiredReservations.length} expired reservations`);
-
-    for (const resv of expiredReservations) {
-      try {
-        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-          // Increment stock back
-          await tx.productVariant.update({
-            where: { id: resv.variantId },
-            data: { stock: { increment: resv.quantity } },
-          });
-
-          // Mark released
-          await tx.inventoryReservation.update({
-            where: { id: resv.id },
-            data: { isReleased: true },
-          });
-
-          // Movement log
-          await tx.inventoryMovement.create({
-            data: {
-              variantId: resv.variantId,
-              quantity: resv.quantity,
-              type: "RELEASE",
-              notes: `Auto-released expired reservation ${resv.id}`,
-            },
-          });
-        });
-      } catch (innerErr: unknown) {
-        logger.error(`[Inventory] Failed to release reservation ${resv.id}`, {
-          message: innerErr instanceof Error ? innerErr.message : String(innerErr),
-        });
-      }
+    if (releasedCount && releasedCount > 0) {
+      logger.info(`[Inventory] Auto-released ${releasedCount} expired reservations`);
     }
   } catch (err: unknown) {
     logger.error("[Inventory] Auto-release batch failed", {

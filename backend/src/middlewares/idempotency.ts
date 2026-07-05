@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response, NextFunction } from "express";
-import prisma from "../config/prisma.js";
 import { logger } from "../utils/logger.js";
+import { supabase } from "../services/supabase.js";
 
 export async function idempotency(req: Request, res: Response, next: NextFunction) {
   // Only apply to mutating requests (POST/PATCH/PUT/DELETE)
@@ -15,25 +15,27 @@ export async function idempotency(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const prismaAny = prisma as any;
-
     // Attempt to insert a placeholder atomically
     let existing;
-    try {
-      await prismaAny.idempotencyRequest.create({
-        data: {
-          id: crypto.randomUUID(),
-          key,
-          responseStatus: 102, // Processing
-          responseBody: JSON.stringify({ status: "processing" }),
-        },
+    const { error: insErr } = await supabase
+      .from("IdempotencyRequest")
+      .insert({
+        id: crypto.randomUUID(),
+        key,
+        responseStatus: 102, // Processing
+        responseBody: JSON.stringify({ status: "processing" }),
       });
-      // If we successfully created it, continue processing
-    } catch (err: any) {
+
+    if (insErr) {
       // Unique constraint failed or other error. It means the key is already processing or done.
-      existing = await prismaAny.idempotencyRequest.findUnique({
-        where: { key },
-      });
+      const { data } = await supabase
+        .from("IdempotencyRequest")
+        .select("*")
+        .eq("key", key)
+        .maybeSingle();
+      
+      existing = data;
+
       if (existing) {
         if (existing.responseStatus === 102) {
           logger.info(`[Idempotency] Key: ${key} is already in progress.`);
@@ -47,7 +49,7 @@ export async function idempotency(req: Request, res: Response, next: NextFunctio
           .set("X-Cache-Idempotency", "true")
           .json(JSON.parse(existing.responseBody));
       }
-      throw err;
+      throw insErr;
     }
 
     // Intercept res.json to capture response
@@ -59,32 +61,34 @@ export async function idempotency(req: Request, res: Response, next: NextFunctio
       // Only cache successful or client-error responses, avoid caching 5xx server errors
       if (res.statusCode >= 200 && res.statusCode < 500) {
         const bodyString = JSON.stringify(body);
-        prismaAny.idempotencyRequest
+        supabase
+          .from("IdempotencyRequest")
           .update({
-            where: { key },
-            data: {
-              responseStatus: res.statusCode,
-              responseBody: bodyString,
-            },
+            responseStatus: res.statusCode,
+            responseBody: bodyString,
           })
-          .then(() => {
-            logger.info(`[Idempotency] Cached response for key: ${key}`);
-          })
-          .catch((err: unknown) => {
-            logger.error(`[Idempotency Error] Failed to update key ${key}`, {
-              message: err instanceof Error ? err.message : String(err),
-            });
+          .eq("key", key)
+          .then(({ error }) => {
+            if (error) {
+              logger.error(`[Idempotency Error] Failed to update key ${key}`, {
+                message: error.message,
+              });
+            } else {
+              logger.info(`[Idempotency] Cached response for key: ${key}`);
+            }
           });
       } else {
         // If it failed with 500 or other server error, delete the placeholder so user can retry
-        prismaAny.idempotencyRequest
-          .delete({
-            where: { key },
-          })
-          .catch((err: unknown) => {
-            logger.error(`[Idempotency Error] Failed to delete failed key ${key}`, {
-              message: err instanceof Error ? err.message : String(err),
-            });
+        supabase
+          .from("IdempotencyRequest")
+          .delete()
+          .eq("key", key)
+          .then(({ error }) => {
+            if (error) {
+              logger.error(`[Idempotency Error] Failed to delete failed key ${key}`, {
+                message: error.message,
+              });
+            }
           });
       }
 

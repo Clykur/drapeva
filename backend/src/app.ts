@@ -16,9 +16,9 @@ import inventoryRoutes from "./routes/inventory.js";
 import customerRoutes from "./routes/customer.js";
 import adminRoutes from "./routes/admin.js";
 import securityRoutes from "./routes/security.js";
-import prisma from "./config/prisma.js";
 import { getRedisStatus } from "./services/redis.js";
 import { logger } from "./utils/logger.js";
+import { supabase } from "./services/supabase.js";
 
 const app = express();
 
@@ -139,8 +139,8 @@ app.get(["/health", "/api/health"], async (req: Request, res: Response) => {
   const redisInfo = getRedisStatus();
   let dbHealthy: boolean;
   try {
-    await prisma.$queryRaw`SELECT 1`;
-    dbHealthy = true;
+    const { error } = await supabase.from("profiles").select("id").limit(1);
+    dbHealthy = !error;
   } catch (_err) {
     dbHealthy = false;
   }
@@ -158,7 +158,8 @@ app.get(["/health", "/api/health"], async (req: Request, res: Response) => {
 
 app.get("/api/health/readiness", async (req: Request, res: Response) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    const { error } = await supabase.from("profiles").select("id").limit(1);
+    if (error) throw error;
     res.status(200).json({ status: "ready" });
   } catch (err: unknown) {
     res.status(503).json({

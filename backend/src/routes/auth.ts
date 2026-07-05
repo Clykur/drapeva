@@ -3,11 +3,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
-import prisma from "../config/prisma.js";
 import env from "../config/env.js";
 import { EmailService } from "../services/email.js";
 import { authenticateJWT, AuthenticatedRequest } from "../middlewares/auth.js";
-import { getSupabaseClient } from "../services/supabase.js";
+import { supabase } from "../services/supabase.js";
 import { TotpService } from "../utils/totp.js";
 
 const router = Router();
@@ -59,7 +58,12 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
   try {
     const data = RegisterSchema.parse(req.body);
 
-    const existingEmail = await prisma.user.findUnique({ where: { email: data.email } });
+    const { data: existingEmail } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", data.email)
+      .maybeSingle();
+
     if (existingEmail) {
       return res.status(400).json({ error: "Email already registered" });
     }
@@ -67,62 +71,71 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
     const formattedPhone = data.phone.startsWith("+")
       ? data.phone
       : `+91${data.phone.replace(/\D/g, "")}`;
-    const existingPhone = await prisma.user.findFirst({ where: { phone: formattedPhone } });
+
+    const { data: existingPhone } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("phone", formattedPhone)
+      .maybeSingle();
+
     if (existingPhone) {
       return res.status(400).json({ error: "Phone number already registered" });
     }
 
-    const sbClient = await getSupabaseClient();
-    let authData: any = { user: null };
-    let signUpError: any = null;
-
-    if (sbClient) {
-      const result = await sbClient.auth.admin.createUser({
-        email: data.email,
+    const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
+      email: data.email,
+      phone: formattedPhone,
+      password: data.password,
+      email_confirm: true,
+      phone_confirm: true,
+      user_metadata: {
+        name: data.name,
         phone: formattedPhone,
-        password: data.password,
-        email_confirm: true,
-        phone_confirm: true,
-        user_metadata: {
-          name: data.name,
-          phone: formattedPhone,
-        },
-      });
-      authData = result.data;
-      signUpError = result.error;
-    }
+      },
+    });
 
-    if (signUpError) {
+    if (signUpError || !authData?.user) {
       return res.status(400).json({ error: signUpError?.message || "Sign up failed in Supabase" });
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
-    const user = await prisma.user.create({
-      data: {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .upsert({
         id: authData.user.id,
         email: data.email,
-        passwordHash,
         name: data.name,
         phone: formattedPhone,
-        role: "CUSTOMER",
-      },
-    });
+        role: "customer",
+        password_hash: passwordHash,
+      })
+      .select()
+      .single();
+
+    if (profileError) {
+      return res.status(500).json({ error: profileError.message });
+    }
 
     // Send Welcome Email
-    await EmailService.sendWelcomeEmail(user.email, user.name);
+    await EmailService.sendWelcomeEmail(profile.email, profile.name);
 
     // Write Audit Log
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "USER_REGISTER",
-        details: `Registered email: ${user.email}`,
-      },
+    await supabase.from("AuditLog").insert({
+      userId: profile.id,
+      action: "USER_REGISTER",
+      details: `Registered email: ${profile.email}`,
     });
 
-    const tokens = generateTokens(user);
+    const userObj = {
+      id: profile.id,
+      email: profile.email || "",
+      name: profile.name || "",
+      role: (profile.role || "customer").toUpperCase() as "CUSTOMER" | "ADMIN",
+    };
+
+    const tokens = generateTokens(userObj);
     res.status(201).json({
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: userObj,
       ...tokens,
     });
   } catch (err) {
@@ -150,72 +163,83 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction) =>
       credentials.phone = formatted;
     }
 
-    const sbClient = await getSupabaseClient();
-    let authUser: any = null;
-    let signInError: any = null;
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword(credentials);
+    const authUser = signInData?.user;
 
-    if (sbClient) {
-      const result = await sbClient.auth.signInWithPassword(credentials);
-      authUser = result.data?.user;
-      signInError = result.error;
-    }
-
-    if (signInError) {
+    if (signInError || !authUser) {
       return res.status(400).json({ error: signInError?.message || "Invalid credentials" });
     }
 
-    let user;
-    if (isEmail) {
-      user = await prisma.user.findUnique({ where: { email: data.identifier } });
-    } else {
-      user = await prisma.user.findFirst({ where: { phone: formatted } });
-    }
+    let { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", authUser.id)
+      .maybeSingle();
 
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: authUser?.id || crypto.randomUUID(),
-          email: authUser?.email || `user_${Date.now()}@drapeva.com`,
-          passwordHash: await bcrypt.hash(data.password, 10),
-          name: authUser?.user_metadata?.name || "Patron",
-          phone: authUser?.user_metadata?.phone || formatted,
-          role: "CUSTOMER",
-        },
-      });
+    if (!profile) {
+      const passwordHash = await bcrypt.hash(data.password, 10);
+      const { data: newProfile, error: profileErr } = await supabase
+        .from("profiles")
+        .insert({
+          id: authUser.id,
+          email: authUser.email || `user_${Date.now()}@drapeva.com`,
+          name: authUser.user_metadata?.name || "Patron",
+          phone: authUser.user_metadata?.phone || formatted,
+          role: "customer",
+          password_hash: passwordHash,
+        })
+        .select()
+        .single();
+
+      if (profileErr) {
+        return res.status(500).json({ error: profileErr.message });
+      }
+      profile = newProfile;
     }
 
     // 2FA Verification if enabled
-    if (user.twoFactorEnabled) {
+    if (profile.two_factor_enabled) {
       const { twoFactorCode } = req.body;
       if (!twoFactorCode) {
-        return res.json({ require2FA: true, userId: user.id });
+        return res.json({ require2FA: true, userId: profile.id });
       }
-      if (!user.twoFactorSecret || !TotpService.verifyToken(user.twoFactorSecret, twoFactorCode)) {
+      if (!profile.two_factor_secret || !TotpService.verifyToken(profile.two_factor_secret, twoFactorCode)) {
         return res.status(400).json({ error: "Invalid two-factor authentication code" });
       }
     }
 
     // Write Session Log
-    const session = await prisma.userSession.create({
-      data: {
-        userId: user.id,
+    const { data: session, error: sessionErr } = await supabase
+      .from("UserSession")
+      .insert({
+        userId: profile.id,
         ipAddress: req.ip || req.socket.remoteAddress || null,
-        userAgent: req.headers["user-agent"] || null,
-      },
-    });
+        userAgent: (req.headers["user-agent"] as string) || null,
+      })
+      .select()
+      .single();
+
+    if (sessionErr) {
+      return res.status(500).json({ error: sessionErr.message });
+    }
 
     // Write Audit Log
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "USER_LOGIN",
-        details: `Logged in user: ${user.email} (Session ID: ${session.id})`,
-      },
+    await supabase.from("AuditLog").insert({
+      userId: profile.id,
+      action: "USER_LOGIN",
+      details: `Logged in user: ${profile.email} (Session ID: ${session.id})`,
     });
 
-    const tokens = generateTokens(user);
+    const userObj = {
+      id: profile.id,
+      email: profile.email || "",
+      name: profile.name || "",
+      role: (profile.role || "customer").toUpperCase() as "CUSTOMER" | "ADMIN",
+    };
+
+    const tokens = generateTokens(userObj);
     res.json({
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: userObj,
       sessionId: session.id,
       ...tokens,
     });
@@ -265,10 +289,14 @@ router.post("/forgot-password", async (req: Request, res: Response, next: NextFu
   if (!email) return res.status(400).json({ error: "Email is required" });
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const { data: user } = await supabase
+      .from("profiles")
+      .select("id, email, password_hash, name")
+      .eq("email", email)
+      .maybeSingle();
+
     if (user) {
-      // Invalidate existing resets by using the password hash in the JWT secret
-      const secret = JWT_SECRET! + user.passwordHash;
+      const secret = JWT_SECRET! + (user.password_hash || "");
       const resetToken = jwt.sign({ id: user.id }, secret, {
         expiresIn: "1h",
         audience: "drapeva-app",
@@ -282,7 +310,6 @@ router.post("/forgot-password", async (req: Request, res: Response, next: NextFu
         `<p>You requested a password reset. Click <a href="${resetLink}">here</a> to reset your password. This link expires in 1 hour.</p>`,
       );
     }
-    // Return 200 regardless for security reasons (don't leak user existence)
     res.json({ message: "Password reset instructions sent if email exists" });
   } catch (err) {
     next(err);
@@ -300,12 +327,17 @@ router.post("/reset-password", async (req: Request, res: Response, _next: NextFu
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const { data: user } = await supabase
+      .from("profiles")
+      .select("id, email, password_hash")
+      .eq("email", email)
+      .maybeSingle();
+
     if (!user) {
       return res.status(400).json({ error: "Invalid or expired token" });
     }
 
-    const secret = JWT_SECRET! + user.passwordHash;
+    const secret = JWT_SECRET! + (user.password_hash || "");
     const decoded = jwt.verify(token, secret, {
       audience: "drapeva-app",
       issuer: "drapeva-api",
@@ -317,10 +349,10 @@ router.post("/reset-password", async (req: Request, res: Response, _next: NextFu
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash },
-    });
+    await supabase
+      .from("profiles")
+      .update({ password_hash: passwordHash })
+      .eq("id", user.id);
 
     res.json({ message: "Password reset successful" });
   } catch (_err) {
@@ -339,12 +371,10 @@ router.post("/verify-email", async (req: Request, res: Response) => {
       issuer: "drapeva-api",
     }) as { id: string };
 
-    await prisma.auditLog.create({
-      data: {
-        userId: decoded.id,
-        action: "EMAIL_VERIFY",
-        details: `Verified email successfully`,
-      },
+    await supabase.from("AuditLog").insert({
+      userId: decoded.id,
+      action: "EMAIL_VERIFY",
+      details: `Verified email successfully`,
     });
     res.json({ message: "Email verification successful" });
   } catch (_err) {
@@ -358,10 +388,25 @@ router.get(
   authenticateJWT,
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.user!.id },
-        select: { id: true, email: true, name: true, phone: true, role: true, createdAt: true },
-      });
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("id, email, name, phone, role, created_at")
+        .eq("id", req.user!.id)
+        .maybeSingle();
+
+      if (!profile || error) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+
+      const user = {
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        phone: profile.phone,
+        role: (profile.role || "customer").toUpperCase() as "CUSTOMER" | "ADMIN",
+        createdAt: profile.created_at,
+      };
+
       res.json({ user });
     } catch (err) {
       next(err);

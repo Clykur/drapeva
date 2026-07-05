@@ -1,15 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import prisma from "../config/prisma.js";
 import { authenticateJWT, requireRole } from "../middlewares/auth.js";
-
-interface LowStockProduct {
-  id: string;
-  size: string;
-  stock: number;
-  product: {
-    name: string;
-  };
-}
+import { supabase } from "../services/supabase.js";
 
 const router = Router();
 
@@ -26,68 +17,89 @@ router.get(
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
       // Today's Sales
-      const todayOrders = await prisma.order.findMany({
-        where: {
-          createdAt: { gte: today },
-          status: { not: "CANCELLED" },
-        },
-        select: { total: true },
-      });
-      const todaySales = todayOrders.reduce(
-        (sum: number, o: { total: number }) => sum + o.total,
+      const { data: todayOrders, error: todayErr } = await supabase
+        .from("orders")
+        .select("total")
+        .gte("created_at", today.toISOString())
+        .neq("status", "cancelled");
+
+      if (todayErr) throw todayErr;
+      
+      const todaySales = (todayOrders || []).reduce(
+        (sum: number, o: { total: number }) => sum + Number(o.total),
         0,
       );
 
       // Monthly Revenue
-      const monthlyOrders = await prisma.order.findMany({
-        where: {
-          createdAt: { gte: startOfMonth },
-          status: { not: "CANCELLED" },
-        },
-        select: { total: true },
-      });
-      const monthlyRevenue = monthlyOrders.reduce(
-        (sum: number, o: { total: number }) => sum + o.total,
+      const { data: monthlyOrders, error: monthlyErr } = await supabase
+        .from("orders")
+        .select("total")
+        .gte("created_at", startOfMonth.toISOString())
+        .neq("status", "cancelled");
+
+      if (monthlyErr) throw monthlyErr;
+
+      const monthlyRevenue = (monthlyOrders || []).reduce(
+        (sum: number, o: { total: number }) => sum + Number(o.total),
         0,
       );
 
       // Order Status breakdown counts
-      const statusCounts = await prisma.order.groupBy({
-        by: ["status"],
-        _count: { id: true },
-      });
-      const statusMap = statusCounts.reduce(
-        (acc: Record<string, number>, curr: { status: string; _count: { id: number } }) => {
-          acc[curr.status] = curr._count.id;
+      const { data: allStatuses, error: statusErr } = await supabase
+        .from("orders")
+        .select("status");
+
+      if (statusErr) throw statusErr;
+
+      const statusMap = (allStatuses || []).reduce(
+        (acc: Record<string, number>, curr: { status: string }) => {
+          const s = (curr.status || "pending").toUpperCase();
+          acc[s] = (acc[s] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>,
       );
 
       // Low Stock Products
-      const lowStockProducts = await prisma.productVariant.findMany({
-        where: { stock: { lte: 3 } },
-        include: { product: true },
-      });
+      const { data: lowStockProducts, error: stockErr } = await supabase
+        .from("ProductVariant")
+        .select("*, product:products(name)")
+        .lte("stock", 3);
+
+      if (stockErr) throw stockErr;
 
       // Best Sellers
-      const orderItems = await prisma.orderItem.findMany({
-        include: { variant: { include: { product: true } } },
-      });
+      const { data: ordersWithItems, error: itemsErr } = await supabase
+        .from("orders")
+        .select("items")
+        .neq("status", "cancelled");
+
+      if (itemsErr) throw itemsErr;
+
       const salesMap = new Map<string, { name: string; quantity: number; sales: number }>();
-      for (const item of orderItems) {
-        const prod = item.variant.product;
-        const existing = salesMap.get(prod.id) || { name: prod.name, quantity: 0, sales: 0 };
-        existing.quantity += item.quantity;
-        existing.sales += item.price * item.quantity;
-        salesMap.set(prod.id, existing);
+      for (const order of ordersWithItems || []) {
+        const items = Array.isArray(order.items) ? order.items : [];
+        for (const item of items) {
+          const prodId = item.productId || item.product_id;
+          if (prodId) {
+            const existing = salesMap.get(prodId) || { name: item.productName || item.product_name || "Heritage Saree", quantity: 0, sales: 0 };
+            existing.quantity += item.quantity || 0;
+            existing.sales += (item.price || 0) * (item.quantity || 0);
+            salesMap.set(prodId, existing);
+          }
+        }
       }
       const bestSellers = Array.from(salesMap.values())
         .sort((a, b) => b.quantity - a.quantity)
         .slice(0, 5);
 
       // Customers count
-      const totalCustomers = await prisma.user.count({ where: { role: "CUSTOMER" } });
+      const { count: totalCustomers, error: custErr } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "customer");
+
+      if (custErr) throw custErr;
 
       // Return dashboard stats
       res.json({
@@ -98,17 +110,17 @@ router.get(
         shippedOrders: statusMap["SHIPPED"] || 0,
         deliveredOrders: statusMap["DELIVERED"] || 0,
         cancelledOrders: statusMap["CANCELLED"] || 0,
-        lowStockCount: lowStockProducts.length,
-        lowStockProducts: lowStockProducts.map((v: LowStockProduct) => ({
+        lowStockCount: lowStockProducts?.length || 0,
+        lowStockProducts: (lowStockProducts || []).map(v => ({
           id: v.id,
-          name: v.product.name,
+          name: v.product?.name || "Product",
           size: v.size,
           stock: v.stock,
         })),
         bestSellers,
-        totalCustomers,
+        totalCustomers: totalCustomers || 0,
         conversionRate: 3.4, // Industry average mock
-        averageOrderValue: monthlyOrders.length > 0 ? monthlyRevenue / monthlyOrders.length : 0,
+        averageOrderValue: (monthlyOrders || []).length > 0 ? monthlyRevenue / (monthlyOrders || []).length : 0,
         salesByState: [
           { state: "Maharashtra", sales: monthlyRevenue * 0.4 },
           { state: "Delhi", sales: monthlyRevenue * 0.25 },
@@ -138,12 +150,14 @@ router.post(
 
     try {
       // Record deletion request in Audit Log
-      await prisma.auditLog.create({
-        data: {
-          action: "COMPLIANCE_DATA_DELETION_REQUEST",
-          details: `Deletion request received for: ${name || ""} (Email: ${email}, Phone: ${phone || ""})`,
-        },
+      const { error } = await supabase.from("AuditLog").insert({
+        action: "COMPLIANCE_DATA_DELETION_REQUEST",
+        details: `Deletion request received for: ${name || ""} (Email: ${email}, Phone: ${phone || ""})`,
       });
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
 
       res.json({
         success: true,

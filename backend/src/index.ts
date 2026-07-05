@@ -2,13 +2,11 @@ import "./config/env.js";
 import app from "./app.js";
 import { startBackupScheduler } from "./utils/backup.js";
 import { startInventoryScheduler } from "./routes/inventory.js";
-import { initializeDatabase } from "./config/prisma.js";
 import { logger } from "./utils/logger.js";
 
 const PORT = process.env.PORT || 5000;
 
-// Initialize DB extensions and start background schedulers
-initializeDatabase().catch((err) => logger.error("DB Init failed", { message: err.message }));
+// Start background schedulers
 startBackupScheduler();
 startInventoryScheduler();
 

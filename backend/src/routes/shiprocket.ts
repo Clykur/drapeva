@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Router, Request, Response, NextFunction } from "express";
-import prisma from "../config/prisma.js";
 import { authenticateJWT, requireRole } from "../middlewares/auth.js";
 import { ShiprocketService } from "../services/shiprocket.js";
 import { EmailService } from "../services/email.js";
 import { logger } from "../utils/logger.js";
 import env from "../config/env.js";
+import { supabase } from "../services/supabase.js";
 
 const router = Router();
 
@@ -15,17 +15,13 @@ async function logOrderTimeline(
   status: string,
   action: string,
   notes?: string,
-  isAdminOnly: boolean = false,
+  _isAdminOnly: boolean = false,
 ) {
   try {
-    await prisma.orderTimeline.create({
-      data: {
-        orderId,
-        status,
-        action,
-        notes,
-        isAdminOnly,
-      },
+    await supabase.from("order_status_history").insert({
+      order_id: orderId,
+      status,
+      note: notes || action,
     });
   } catch (err: unknown) {
     logger.error("[Timeline Log Error] Failed", {
@@ -44,12 +40,13 @@ router.post(
     if (!orderId) return res.status(400).json({ error: "Order ID is required" });
 
     try {
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: { address: true, items: { include: { variant: { include: { product: true } } } } },
-      });
+      const { data: order, error: fetchErr } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", orderId)
+        .maybeSingle();
 
-      if (!order) return res.status(404).json({ error: "Order not found" });
+      if (fetchErr || !order) return res.status(404).json({ error: "Order not found" });
 
       if (
         order.status === "CANCELLED" ||
@@ -64,9 +61,10 @@ router.post(
         return res.status(400).json({ error: "Shipment already created for this order" });
       }
 
-      const orderItems = order.items.map((item: any) => ({
-        name: item.variant.product.name,
-        sku: item.variant.sku,
+      const rawItems = Array.isArray(order.items) ? order.items : [];
+      const orderItems = rawItems.map((item: any) => ({
+        name: item.product_name || item.productName || "Heritage Saree",
+        sku: item.sku || item.sku_code || "GEN-SKU",
         units: item.quantity,
         selling_price: item.price,
         discount: 0,
@@ -74,20 +72,21 @@ router.post(
         hsn: 5007, // HSN code for Silk fabrics/sarees
       }));
 
+      const addr = order.shipping_address || {};
       const payload = {
         order_id: order.id,
-        order_date: order.createdAt.toISOString().replace(/T/, " ").replace(/\..+/, ""),
+        order_date: new Date(order.created_at).toISOString().replace(/T/, " ").replace(/\..+/, ""),
         pickup_location: "Drapeva Mumbai Studio",
-        billing_customer_name: order.name,
+        billing_customer_name: order.customer_name || order.name || "Customer",
         billing_last_name: "",
-        billing_address: order.address?.line1 || "",
-        billing_address_2: order.address?.line2 || "",
-        billing_city: order.address?.city || "",
-        billing_pincode: order.address?.postalCode || "",
-        billing_state: order.address?.state || "",
-        billing_country: order.address?.country || "India",
-        billing_email: order.email,
-        billing_phone: order.phone,
+        billing_address: addr.line1 || "",
+        billing_address_2: addr.line2 || "",
+        billing_city: addr.city || "",
+        billing_pincode: addr.postalCode || addr.postal_code || "",
+        billing_state: addr.state || "",
+        billing_country: addr.country || "India",
+        billing_email: order.customer_email || order.email || "",
+        billing_phone: order.customer_phone || order.phone || "",
         shipping_is_billing: true,
         order_items: orderItems,
         payment_method: "Prepaid",
@@ -107,26 +106,32 @@ router.post(
       }
 
       // Update Order with Shiprocket details
-      const updatedOrder = await prisma.order.update({
-        where: { id: orderId },
-        data: {
+      const { data: updatedOrder, error: updateErr } = await supabase
+        .from("orders")
+        .update({
           shiprocketOrderId: String(result.order_id),
           shipmentId: String(result.shipment_id),
           awbNumber: result.awb_code,
           courierName: result.courier_name || "Delhivery",
           trackingUrl: `https://shiprocket.co/tracking/${result.awb_code}`,
           estimatedDelivery: result.estimated_delivery_date,
-          status: "SHIPPED",
-          shippedAt: new Date(),
-        },
-      });
+          status: "shipped",
+          shippedAt: new Date().toISOString(),
+        })
+        .eq("id", orderId)
+        .select()
+        .single();
+
+      if (updateErr) {
+        return res.status(500).json({ error: updateErr.message });
+      }
 
       // Send Shipped Email
       const displayCode = `ORD-${order.id.slice(0, 8).toUpperCase()}`;
       await EmailService.sendEmail(
-        order.email,
+        order.customer_email || order.email,
         `Your Drapeva Saree has Shipped! - ${displayCode}`,
-        `<p>Dear ${order.name},</p>
+        `<p>Dear ${order.customer_name || order.name},</p>
          <p>Your luxury saree has been shipped! Here are the tracking details:</p>
          <ul>
            <li><strong>AWB Code:</strong> ${result.awb_code}</li>
@@ -154,18 +159,19 @@ router.post(
 router.post("/webhook", async (req: Request, res: Response, _next: NextFunction) => {
   const payload = req.body;
 
-  // Basic token check or validation
   logger.debug(`[Shiprocket Webhook] Received payload`, { awb: payload?.awb });
 
   const { awb, current_status, etd } = payload;
   if (!awb) return res.status(400).json({ error: "Missing AWB" });
 
   try {
-    const order = await prisma.order.findFirst({
-      where: { awbNumber: awb },
-    });
+    const { data: order, error: fetchErr } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("awbNumber", awb)
+      .maybeSingle();
 
-    if (!order) {
+    if (fetchErr || !order) {
       console.warn(`[Shiprocket Webhook] Order with AWB ${awb} not found`);
       return res.status(200).json({ success: true, message: "Ignored, order not found" });
     }
@@ -174,21 +180,21 @@ router.post("/webhook", async (req: Request, res: Response, _next: NextFunction)
     let action = "SHIPMENT_UPDATE";
 
     if (current_status === "Delivered") {
-      nextStatus = "DELIVERED";
+      nextStatus = "delivered";
       action = "SHIPMENT_DELIVERED";
     } else if (current_status === "Cancelled") {
-      nextStatus = "CANCELLED";
+      nextStatus = "cancelled";
       action = "SHIPMENT_CANCELLED";
     }
 
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
+    await supabase
+      .from("orders")
+      .update({
         shippingStatus: current_status,
         status: nextStatus,
-        deliveredAt: current_status === "Delivered" ? new Date() : order.deliveredAt,
-      },
-    });
+        deliveredAt: current_status === "Delivered" ? new Date().toISOString() : order.deliveredAt,
+      })
+      .eq("id", order.id);
 
     await logOrderTimeline(
       order.id,
@@ -199,9 +205,9 @@ router.post("/webhook", async (req: Request, res: Response, _next: NextFunction)
 
     if (current_status === "Delivered") {
       await EmailService.sendEmail(
-        order.email,
+        order.customer_email || order.email,
         `Your Drapeva Saree has been Delivered!`,
-        `<p>Dear ${order.name},</p>
+        `<p>Dear ${order.customer_name || order.name},</p>
          <p>We are delighted that your curated heritage piece has arrived safely. We hope it brings you joy.</p>
          <p>Would you kindly share your review of the fabric and draping experience? <a href="${env.FRONTEND_URL}/orders/${order.id}">Leave a Review</a></p>`,
       );
@@ -300,16 +306,16 @@ router.post(
           "SHIPMENT_CANCELLED",
           `Shipment with ID ${shipmentId} cancelled in Shiprocket.`,
         );
-        await prisma.order.update({
-          where: { id: orderId },
-          data: {
+        await supabase
+          .from("orders")
+          .update({
             shipmentId: null,
             awbNumber: null,
             courierName: null,
             trackingUrl: null,
             shippingStatus: "CANCELLED",
-          },
-        });
+          })
+          .eq("id", orderId);
       }
       res.json(result);
     } catch (err) {
