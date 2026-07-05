@@ -1,4 +1,4 @@
-// Centralized Media Architecture for Golden Silk Emporium (Drapeva)
+// Centralized Media Architecture for Drapeva (Drapeva)
 // All assets here point to verified, publicly accessible, luxury saree-related URLs.
 
 // 1. Hero Section Assets

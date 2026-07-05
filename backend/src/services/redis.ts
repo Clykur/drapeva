@@ -33,44 +33,75 @@ if (!redisUrl.includes("mock")) {
     });
 }
 
+interface CacheEntry {
+  value: any;
+  expiresAt: number;
+}
+const memoryCache = new Map<string, CacheEntry>();
+
 export class CacheService {
   static async get<T>(key: string): Promise<T | null> {
-    if (!isConnected || !client) return null;
-    try {
-      const data = await client.get(key);
-      return data ? (JSON.parse(data) as T) : null;
-    } catch {
+    if (isConnected && client) {
+      try {
+        const data = await client.get(key);
+        return data ? (JSON.parse(data) as T) : null;
+      } catch {
+        // fall through to memory cache
+      }
+    }
+    const entry = memoryCache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      memoryCache.delete(key);
       return null;
     }
+    return entry.value as T;
   }
 
   static async set(key: string, value: unknown, ttlSeconds: number = 3600): Promise<void> {
-    if (!isConnected || !client) return;
-    try {
-      await client.setEx(key, ttlSeconds, JSON.stringify(value));
-    } catch {
-      // ignore
+    if (isConnected && client) {
+      try {
+        await client.setEx(key, ttlSeconds, JSON.stringify(value));
+        return;
+      } catch {
+        // fall through to memory cache
+      }
     }
+    memoryCache.set(key, {
+      value,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    });
   }
 
   static async del(key: string): Promise<void> {
-    if (!isConnected || !client) return;
-    try {
-      await client.del(key);
-    } catch {
-      // ignore
+    if (isConnected && client) {
+      try {
+        await client.del(key);
+        return;
+      } catch {
+        // fall through to memory cache
+      }
     }
+    memoryCache.delete(key);
   }
 
   static async clearPattern(pattern: string): Promise<void> {
-    if (!isConnected || !client) return;
-    try {
-      const keys = await client.keys(pattern);
-      if (keys.length > 0) {
-        await client.del(keys);
+    if (isConnected && client) {
+      try {
+        const keys = await client.keys(pattern);
+        if (keys.length > 0) {
+          await client.del(keys);
+        }
+        return;
+      } catch {
+        // fall through to memory cache
       }
-    } catch {
-      // ignore
+    }
+    const regexPattern = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
+    for (const key of memoryCache.keys()) {
+      if (regexPattern.test(key)) {
+        memoryCache.delete(key);
+      }
     }
   }
 }

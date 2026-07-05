@@ -177,17 +177,23 @@ router.post(
         const verifiedItems = [];
 
         for (const item of data.items) {
-          const variant = await tx.productVariant.findUnique({
-            where: { id: item.variantId },
-            include: { product: true },
-          });
+          const variants = await tx.$queryRaw`
+            SELECT * FROM "ProductVariant" WHERE id = ${item.variantId} FOR UPDATE
+          `;
+          const variant = (variants as any[])?.[0];
 
           if (!variant) throw new Error("Product variant not found");
+
+          const product = await tx.product.findUnique({
+            where: { id: variant.productId },
+          });
+          if (!product) throw new Error("Product not found");
+
           if (variant.stock < item.quantity) {
-            throw new Error(`Insufficient stock for ${variant.product.name} (${variant.size})`);
+            throw new Error(`Insufficient stock for ${product.name} (${variant.size})`);
           }
 
-          const price = variant.product.price;
+          const price = product.price;
           subtotal += price * item.quantity;
           verifiedItems.push({
             variantId: variant.id,
@@ -210,7 +216,7 @@ router.post(
                 userId: admin.id,
                 type: "LOW_STOCK",
                 title: "Low Stock Alert",
-                message: `Product ${updatedVariant.product.name} (${updatedVariant.size}) has only ${updatedVariant.stock} units left in stock.`,
+                message: `Product ${product.name} (${variant.size}) has only ${updatedVariant.stock} units left in stock.`,
               }));
               await tx.notification.createMany({ data: notifications });
             }

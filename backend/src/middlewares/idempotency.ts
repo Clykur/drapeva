@@ -16,17 +16,38 @@ export async function idempotency(req: Request, res: Response, next: NextFunctio
 
   try {
     const prismaAny = prisma as any;
-    // Check if key already processed
-    const existing = await prismaAny.idempotencyRequest.findUnique({
-      where: { key },
-    });
 
-    if (existing) {
-      logger.info(`[Idempotency] Key match found: ${key}. Returning cached response.`);
-      return res
-        .status(existing.responseStatus)
-        .set("X-Cache-Idempotency", "true")
-        .json(JSON.parse(existing.responseBody));
+    // Attempt to insert a placeholder atomically
+    let existing;
+    try {
+      await prismaAny.idempotencyRequest.create({
+        data: {
+          id: crypto.randomUUID(),
+          key,
+          responseStatus: 102, // Processing
+          responseBody: JSON.stringify({ status: "processing" }),
+        },
+      });
+      // If we successfully created it, continue processing
+    } catch (err: any) {
+      // Unique constraint failed or other error. It means the key is already processing or done.
+      existing = await prismaAny.idempotencyRequest.findUnique({
+        where: { key },
+      });
+      if (existing) {
+        if (existing.responseStatus === 102) {
+          logger.info(`[Idempotency] Key: ${key} is already in progress.`);
+          return res
+            .status(409)
+            .json({ error: "Request with this idempotency key is already in progress" });
+        }
+        logger.info(`[Idempotency] Key match found: ${key}. Returning cached response.`);
+        return res
+          .status(existing.responseStatus)
+          .set("X-Cache-Idempotency", "true")
+          .json(JSON.parse(existing.responseBody));
+      }
+      throw err;
     }
 
     // Intercept res.json to capture response
@@ -39,10 +60,9 @@ export async function idempotency(req: Request, res: Response, next: NextFunctio
       if (res.statusCode >= 200 && res.statusCode < 500) {
         const bodyString = JSON.stringify(body);
         prismaAny.idempotencyRequest
-          .create({
+          .update({
+            where: { key },
             data: {
-              id: crypto.randomUUID(),
-              key,
               responseStatus: res.statusCode,
               responseBody: bodyString,
             },
@@ -51,7 +71,18 @@ export async function idempotency(req: Request, res: Response, next: NextFunctio
             logger.info(`[Idempotency] Cached response for key: ${key}`);
           })
           .catch((err: unknown) => {
-            logger.error(`[Idempotency Error] Failed to save key ${key}`, {
+            logger.error(`[Idempotency Error] Failed to update key ${key}`, {
+              message: err instanceof Error ? err.message : String(err),
+            });
+          });
+      } else {
+        // If it failed with 500 or other server error, delete the placeholder so user can retry
+        prismaAny.idempotencyRequest
+          .delete({
+            where: { key },
+          })
+          .catch((err: unknown) => {
+            logger.error(`[Idempotency Error] Failed to delete failed key ${key}`, {
               message: err instanceof Error ? err.message : String(err),
             });
           });

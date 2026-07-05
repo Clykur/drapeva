@@ -1,5 +1,5 @@
 # ============================================================
-# Golden Silk Emporium — Multi-Stage Dockerfile
+# Drapeva — Multi-Stage Dockerfile
 # ============================================================
 #
 # Stages:
@@ -27,11 +27,10 @@ FROM base AS deps
 # Copy only manifests so layer caches on code changes but not dep changes
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/package.json
-COPY backend/package.json  ./backend/package.json
+COPY backend/package.json ./backend/package.json
 
 # Install all deps (including devDeps needed for build + sharp for image opt)
 RUN npm ci --include=dev
-
 # ── Backend Builder ───────────────────────────────────────────
 FROM base AS builder-backend
 COPY --from=deps /app/node_modules ./node_modules

@@ -47,12 +47,12 @@ jobs:
             echo "::notice::SNYK_TOKEN not set; skipping Snyk Container."
             exit 0
           fi
-          if ! docker build -t golden-silk-emporium:snyk .; then
+          if ! docker build -t Drapeva:snyk .; then
             echo "::warning::docker build failed; skipping Snyk Container test."
             exit 0
           fi
           set +e
-          snyk container test golden-silk-emporium:snyk --file=Dockerfile --sarif-file-output=snyk.sarif --severity-threshold=high
+          snyk container test Drapeva:snyk --file=Dockerfile --sarif-file-output=snyk.sarif --severity-threshold=high
           if [ ! -s snyk.sarif ]; then stub_sarif; fi
           exit 0
 

@@ -4,13 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface SkeletonLoaderProps {
   variant?:
-    | "product-card"
-    | "product-detail"
-    | "collection"
-    | "dashboard"
-    | "orders"
-    | "wishlist"
-    | "cart";
+    "product-card" | "product-detail" | "collection" | "dashboard" | "orders" | "wishlist" | "cart";
   className?: string;
   count?: number;
 }

@@ -1,3 +1,4 @@
+/// <reference types="node" />
 // Centralized ZeptoMail service using the REST API
 
 // Reusable retry helper

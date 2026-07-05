@@ -20,14 +20,20 @@ router.post(
 
     try {
       const result = await prisma.$transaction(async (tx: any) => {
-        const variant = await tx.productVariant.findUnique({
-          where: { id: variantId },
-          include: { product: true },
-        });
+        const variants = await tx.$queryRaw`
+          SELECT * FROM "ProductVariant" WHERE id = ${variantId} FOR UPDATE
+        `;
+        const variant = (variants as any[])?.[0];
 
         if (!variant) throw new Error("Product variant not found");
+
+        const product = await tx.product.findUnique({
+          where: { id: variant.productId },
+        });
+        if (!product) throw new Error("Product not found");
+
         if (variant.stock < quantity) {
-          throw new Error(`Insufficient stock for ${variant.product.name} (${variant.size})`);
+          throw new Error(`Insufficient stock for ${product.name} (${variant.size})`);
         }
 
         // Deduct stock

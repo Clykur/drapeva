@@ -1,4 +1,4 @@
-# Deployment Guide — Golden Silk Emporium (Drapeva)
+# Deployment Guide — Drapeva (Drapeva)
 
 This guide documents the environment variable configuration, database setups, and step-by-step procedures for deploying both the Next.js frontend to Vercel and the Node.js/Express backend to Render.
 
@@ -6,10 +6,10 @@ This guide documents the environment variable configuration, database setups, an
 
 ## 1. Project Overview
 
-Golden Silk Emporium (Drapeva) is organized as an **npm workspaces monorepo** to keep the client and server code co-located while allowing independent building and deployment.
+Drapeva (Drapeva) is organized as an **npm workspaces monorepo** to keep the client and server code co-located while allowing independent building and deployment.
 
-- **Frontend**: Next.js App Router project located in the [frontend/](file:///Users/karthiknaramala/Desktop/golden-silk-emporium/frontend) directory.
-- **Backend**: Node.js + Express + Prisma API server located in the [backend/](file:///Users/karthiknaramala/Desktop/golden-silk-emporium/backend) directory.
+- **Frontend**: Next.js App Router project located in the [frontend/](file:///Users/karthiknaramala/Desktop/Drapeva/frontend) directory.
+- **Backend**: Node.js + Express + Prisma API server located in the [backend/](file:///Users/karthiknaramala/Desktop/Drapeva/backend) directory.
 
 ---
 
@@ -65,8 +65,8 @@ Add these variables in your Render Web Service Settings (`Environment` tab).
 > **Applying Supabase SQL Schema**:
 > You must run the SQL schema scripts in your Supabase Dashboard SQL Editor before testing registration or order creation:
 >
-> 1. Execute [supabase-schema.sql](file:///Users/karthiknaramala/Desktop/golden-silk-emporium/supabase-schema.sql) to set up tables, enums, triggers, RLS, and initial seed categories.
-> 2. Execute [supabase-additions.sql](file:///Users/karthiknaramala/Desktop/golden-silk-emporium/supabase-additions.sql) to add addresses, notifications, returning capabilities, and webhook integrations.
+> 1. Execute [supabase-schema.sql](file:///Users/karthiknaramala/Desktop/Drapeva/supabase-schema.sql) to set up tables, enums, triggers, RLS, and initial seed categories.
+> 2. Execute [supabase-additions.sql](file:///Users/karthiknaramala/Desktop/Drapeva/supabase-additions.sql) to add addresses, notifications, returning capabilities, and webhook integrations.
 
 ### Supabase Auth Settings Configuration
 
@@ -122,7 +122,7 @@ Add these variables in your Render Web Service Settings (`Environment` tab).
 ### Routing / MIME Type Failures on Vercel
 
 - **Cause**: Next.js paths returning 404 or page assets failing to load with MIME type errors.
-- **Resolution**: Remove the Vite-era SPA rewrites from [vercel.json](file:///Users/karthiknaramala/Desktop/golden-silk-emporium/frontend/vercel.json) to let Next.js routing perform naturally.
+- **Resolution**: Remove the Vite-era SPA rewrites from [vercel.json](file:///Users/karthiknaramala/Desktop/Drapeva/frontend/vercel.json) to let Next.js routing perform naturally.
 
 ### CORS Blockage on Razorpay Requests
 

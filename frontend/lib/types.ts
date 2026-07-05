@@ -4,22 +4,11 @@
 // ============================================================
 
 export type OrderStatus =
-  | "pending"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
-  | "returned";
+  "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "returned";
 export type DiscountType = "percentage" | "fixed";
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
 export type TicketCategory =
-  | "order_issue"
-  | "payment"
-  | "return_refund"
-  | "product_query"
-  | "delivery"
-  | "account"
-  | "other";
+  "order_issue" | "payment" | "return_refund" | "product_query" | "delivery" | "account" | "other";
 export type NotificationType =
   | "order_placed"
   | "order_processing"
