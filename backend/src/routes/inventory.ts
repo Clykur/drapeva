@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
+import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma.js";
 import { authenticateJWT, requireRole } from "../middlewares/auth.js";
 import { logger } from "../utils/logger.js";
@@ -19,11 +20,13 @@ router.post(
     const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
 
     try {
-      const result = await prisma.$transaction(async (tx: any) => {
-        const variants = await tx.$queryRaw`
+      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const variants = await tx.$queryRaw<
+          { id: string; productId: string; stock: number; size: string }[]
+        >`
           SELECT * FROM "ProductVariant" WHERE id = ${variantId} FOR UPDATE
         `;
-        const variant = (variants as any[])?.[0];
+        const variant = variants?.[0];
 
         if (!variant) throw new Error("Product variant not found");
 
@@ -80,7 +83,7 @@ router.post(
     if (!reservationId) return res.status(400).json({ error: "reservationId is required" });
 
     try {
-      const result = await prisma.$transaction(async (tx: any) => {
+      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const resv = await tx.inventoryReservation.findUnique({ where: { id: reservationId } });
         if (!resv) throw new Error("Reservation not found");
         if (resv.isReleased) throw new Error("Reservation already released");
@@ -147,7 +150,7 @@ router.post(
     }
 
     try {
-      await prisma.$transaction(async (tx: any) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         for (const update of updates) {
           const { variantId, quantity } = update;
           const variant = await tx.productVariant.findUnique({ where: { id: variantId } });
@@ -212,7 +215,7 @@ export async function releaseExpiredReservations() {
 
     for (const resv of expiredReservations) {
       try {
-        await prisma.$transaction(async (tx: any) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           // Increment stock back
           await tx.productVariant.update({
             where: { id: resv.variantId },

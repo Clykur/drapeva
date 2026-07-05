@@ -2,6 +2,15 @@ import { Router, Request, Response, NextFunction } from "express";
 import prisma from "../config/prisma.js";
 import { authenticateJWT, requireRole } from "../middlewares/auth.js";
 
+interface LowStockProduct {
+  id: string;
+  size: string;
+  stock: number;
+  product: {
+    name: string;
+  };
+}
+
 const router = Router();
 
 // 1. BI Executive Dashboard API (Admin Only)
@@ -90,7 +99,7 @@ router.get(
         deliveredOrders: statusMap["DELIVERED"] || 0,
         cancelledOrders: statusMap["CANCELLED"] || 0,
         lowStockCount: lowStockProducts.length,
-        lowStockProducts: lowStockProducts.map((v: any) => ({
+        lowStockProducts: lowStockProducts.map((v: LowStockProduct) => ({
           id: v.id,
           name: v.product.name,
           size: v.size,

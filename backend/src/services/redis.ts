@@ -34,7 +34,7 @@ if (!redisUrl.includes("mock")) {
 }
 
 interface CacheEntry {
-  value: any;
+  value: unknown;
   expiresAt: number;
 }
 const memoryCache = new Map<string, CacheEntry>();
