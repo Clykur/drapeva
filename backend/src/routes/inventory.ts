@@ -30,7 +30,7 @@ router.post(
         return res.status(400).json({ error: error?.message || "Stock reservation failed" });
       }
 
-      // Map back to Prisma camelCase naming style
+      // Map back to camelCase naming style
       const mappedReservation = {
         id: reservation.id,
         variantId: reservation.variant_id,
@@ -64,7 +64,7 @@ router.post(
         return res.status(400).json({ error: error?.message || "Releasing reservation failed" });
       }
 
-      // Map back to Prisma camelCase naming style
+      // Map back to camelCase naming style
       const mappedReservation = {
         id: reservation.id,
         variantId: reservation.variant_id,

@@ -1,5 +1,4 @@
 #!/bin/bash
-cd /Users/karthiknaramala/Desktop/Drapeva/backend
-npm run prisma:generate
-npm run db:seed
+# Seed Supabase database
+npm run seed:supabase
 echo "Database seeded successfully!"

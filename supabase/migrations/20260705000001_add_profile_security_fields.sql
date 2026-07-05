@@ -7,7 +7,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS birthday TIMESTAMPTZ;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS anniversary TIMESTAMPTZ;
 
--- 2. Ensure UserSession table exists in public schema (matching Prisma definition)
+-- 2. Ensure UserSession table exists in public schema (matching database definition)
 CREATE TABLE IF NOT EXISTS "UserSession" (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "userId" UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS "UserSession" (
   "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Ensure AuditLog table exists (matching Prisma definition)
+-- 3. Ensure AuditLog table exists (matching database definition)
 CREATE TABLE IF NOT EXISTS "AuditLog" (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "userId" UUID REFERENCES auth.users(id) ON DELETE SET NULL,

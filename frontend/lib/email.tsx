@@ -122,19 +122,7 @@ export async function sendOrderConfirmationToCustomer(
       return null;
     }
 
-    // Verify email exists in database (either profiles or orders)
     const supabase = getSupabaseAdmin();
-    const [profileCheck, orderCheck] = await Promise.all([
-      supabase.from("profiles").select("id").eq("email", to).maybeSingle(),
-      supabase.from("orders").select("id").eq("customer_email", to).maybeSingle(),
-    ]);
-
-    if (!profileCheck.data && !orderCheck.data) {
-      console.warn(
-        `[Email Service] Email "${to}" not found in profiles or orders database. Skipping send.`,
-      );
-      return null;
-    }
 
     // 1. Prevent duplicate email sending
     const alreadySent = await markEmailAsSent(
@@ -263,19 +251,7 @@ export async function sendOrderShippedEmail(
       return null;
     }
 
-    // Verify email exists in database (either profiles or orders)
     const supabase = getSupabaseAdmin();
-    const [profileCheck, orderCheck] = await Promise.all([
-      supabase.from("profiles").select("id").eq("email", to).maybeSingle(),
-      supabase.from("orders").select("id").eq("customer_email", to).maybeSingle(),
-    ]);
-
-    if (!profileCheck.data && !orderCheck.data) {
-      console.warn(
-        `[Email Service] Email "${to}" not found in profiles or orders database. Skipping shipped email.`,
-      );
-      return null;
-    }
 
     // 1. Prevent duplicate email sending
     const alreadySent = await markEmailAsSent(orderId, "order_shipped", "sendOrderShippedEmail");
@@ -331,19 +307,7 @@ export async function sendOrderDeliveredEmail(
       return null;
     }
 
-    // Verify email exists in database (either profiles or orders)
     const supabase = getSupabaseAdmin();
-    const [profileCheck, orderCheck] = await Promise.all([
-      supabase.from("profiles").select("id").eq("email", to).maybeSingle(),
-      supabase.from("orders").select("id").eq("customer_email", to).maybeSingle(),
-    ]);
-
-    if (!profileCheck.data && !orderCheck.data) {
-      console.warn(
-        `[Email Service] Email "${to}" not found in profiles or orders database. Skipping delivered email.`,
-      );
-      return null;
-    }
 
     // 1. Prevent duplicate email sending
     const alreadySent = await markEmailAsSent(

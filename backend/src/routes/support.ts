@@ -108,7 +108,7 @@ router.post("/newsletter", async (req: Request, res: Response, next: NextFunctio
       `<h3>Welcome to Drapeva</h3><p>Thank you for subscribing to our weekly journal. You will receive updates on new collections and artisan stories.</p>`,
     );
 
-    // Map back to Prisma camelCase naming style
+    // Map back to camelCase naming style
     const mapped = {
       id: subscriber.id,
       email: subscriber.email,

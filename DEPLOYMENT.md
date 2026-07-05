@@ -9,7 +9,7 @@ This guide documents the environment variable configuration, database setups, an
 Drapeva (Drapeva) is organized as an **npm workspaces monorepo** to keep the client and server code co-located while allowing independent building and deployment.
 
 - **Frontend**: Next.js App Router project located in the [frontend/](file:///Users/karthiknaramala/Desktop/Drapeva/frontend) directory.
-- **Backend**: Node.js + Express + Prisma API server located in the [backend/](file:///Users/karthiknaramala/Desktop/Drapeva/backend) directory.
+- **Backend**: Node.js + Express + Supabase API server located in the [backend/](file:///Users/karthiknaramala/Desktop/Drapeva/backend) directory.
 
 ---
 
@@ -99,7 +99,7 @@ Add these variables in your Render Web Service Settings (`Environment` tab).
 4. Runtime: **`Node`**.
 5. Build Command:
    ```bash
-   npm install && npx prisma generate && npm run build
+    npm install && npm run build
    ```
 6. Start Command:
    ```bash

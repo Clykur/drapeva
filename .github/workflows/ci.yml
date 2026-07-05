@@ -1,4 +1,4 @@
-# Drapeva — CI/CD (Next.js / TypeScript / Supabase / Prisma / npm)
+# Drapeva — CI/CD (Next.js / TypeScript / Supabase / npm)
 #
 # DAG overview:
 #   setup → parallel static (lint, typecheck, format) + codeql
@@ -351,8 +351,6 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
       - if: hashFiles('node_modules/.package-lock.json') == ''
         run: npm ci
-      - name: Generate Prisma client
-        run: npx prisma generate --schema=backend/prisma/schema.prisma
       - name: Compile TypeScript
         run: npm run build:backend
       - name: Build summary

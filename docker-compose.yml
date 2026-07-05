@@ -29,8 +29,7 @@ services:
       dockerfile: Dockerfile
       target: deps # use deps stage so we get node_modules fast
     working_dir: /app/backend
-    command: >
-      sh -c "npx prisma generate --schema=prisma/schema.prisma && npx tsx watch src/index.ts"
+    command: npx tsx watch src/index.ts
     ports:
       - "5001:5001"
     volumes:

@@ -241,8 +241,6 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
       - if: hashFiles('node_modules/.package-lock.json') == ''
         run: npm ci
-      - name: Generate Prisma client
-        run: npx prisma generate --schema=backend/prisma/schema.prisma
       - name: Compile TypeScript
         run: npm run build:backend
 

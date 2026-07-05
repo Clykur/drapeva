@@ -5,7 +5,7 @@
 # Stages:
 #   base             — shared Node 22 Alpine base
 #   deps             — installs all workspace dependencies
-#   builder-backend  — compiles TypeScript → dist/, runs prisma generate
+#   builder-backend  — compiles TypeScript → dist/
 #   builder-frontend — Next.js production build
 #   image-optimizer  — compresses public/images/* with sharp (PNG + WebP)
 #   runner           — lean production image (≈ no dev deps, no src)
@@ -40,9 +40,8 @@ COPY package.json ./
 WORKDIR /app/backend
 # node_modules are hoisted to /app/node_modules by npm workspaces; no separate copy needed
 
-# Generate Prisma client then compile TypeScript
-RUN npx prisma generate --schema=prisma/schema.prisma && \
-    npx tsc --project tsconfig.json
+# Compile TypeScript
+RUN npx tsc --project tsconfig.json
 
 # ── Frontend Builder ──────────────────────────────────────────
 FROM base AS builder-frontend
@@ -99,7 +98,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 # ---- Backend runtime ----
 WORKDIR /app/backend
 COPY --from=builder-backend /app/backend/dist ./dist
-COPY --from=builder-backend /app/backend/prisma ./prisma
+
 
 # Dependencies come from the deps stage (npm workspaces)
 COPY --from=deps /app/node_modules /app/node_modules

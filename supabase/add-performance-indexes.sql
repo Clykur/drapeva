@@ -14,7 +14,7 @@ CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at);
 CREATE INDEX IF NOT EXISTS idx_products_name_trgm ON products USING gin (name gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_products_description_trgm ON products USING gin (description gin_trgm_ops);
 
--- Indexes for Order & Variant lookups (Prisma database tables)
+-- Indexes for Order & Variant lookups (Database tables)
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON "OrderItem"("orderId");
 CREATE INDEX IF NOT EXISTS idx_order_items_variant ON "OrderItem"("variantId");
 CREATE INDEX IF NOT EXISTS idx_product_variants_product ON "ProductVariant"("productId");

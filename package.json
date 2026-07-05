@@ -20,8 +20,6 @@
     "format:check": "npm run format:check -w frontend && npm run format:check -w backend",
     "clean": "npm run clean -w frontend && rm -rf node_modules",
     "seed:supabase": "node frontend/scripts/seed-supabase.cjs",
-    "db:seed": "npm run db:seed -w backend",
-    "db:push": "npm run db:push -w backend",
     "optimize-images": "node scripts/optimize-images.mjs",
     "optimize-images:dry": "node scripts/optimize-images.mjs --dry-run",
     "docker:dev": "docker compose up --build",
