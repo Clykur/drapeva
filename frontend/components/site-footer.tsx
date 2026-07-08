@@ -215,8 +215,20 @@ export function SiteFooter() {
 
         {/* Bottom Bar */}
         <div className="mt-8 flex flex-col gap-6 text-[11px] uppercase tracking-widest text-background/40 md:flex-row md:items-center md:justify-between">
-          <p>© {new Date().getFullYear()} Drapeva. All rights reserved.</p>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+            <p>© {new Date().getFullYear()} Drapeva. All rights reserved.</p>
 
+            <span className="hidden md:block text-background/20">|</span>
+
+            <a
+              href="https://clykur.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-background/40 transition-colors hover:text-background"
+            >
+              Developed by <span className="font-medium">Clykur</span>
+            </a>
+          </div>
           <div className="flex flex-wrap items-center gap-8">
             <a
               href={whatsappUrl}
